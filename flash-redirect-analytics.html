@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Redirecting to Google Reviews…</title>
   <meta name="theme-color" content="#0f172a" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
+  <meta name="referrer" content="no-referrer" />
   <style>
     :root{
       --bg:#0f172a;
@@ -139,6 +141,7 @@
     </div>
 
     <p class="tiny" id="hint"></p>
+    <p class="tiny">We may collect anonymous click and redirect metrics to improve this page.</p>
   </main>
 
   <script>
@@ -147,14 +150,14 @@
       // CONFIG
       // =========================
       const REDIRECT_SECONDS = 3.5; // auto redirect delay
-      const ANALYTICS_WEBHOOK = "https://script.google.com/macros/s/AKfycbz8QPtLuBujD19svvJMTJaTNIIBndjbBcjIpELB6G6Tbeqa0Kj58P35Mnu-B1qDe3Mb/exec";
-      const ANALYTICS_TOKEN = "adiloofm_analytics_v1_9f3c7e2b4a1d6c8f0b5e9a2d7c4f1b8e6a3d0c9f5b2e7a1d4c8f6b0e3a9d2f";
+      const ANALYTICS_WEBHOOK = ""; // optional: set your own endpoint, no client secret required
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
+      const ALLOWED_REVIEW_HOSTS = new Set(["search.google.com", "www.google.com", "google.com", "maps.google.com"]);
 
       // Optional ID lookup map. You can fill SP1..SP50 here.
-      // If ?shop and ?link are passed, they override this map.
+      // ID lookup is preferred; query link is only used when no known ID is provided.
       const SHOP_LOOKUP = {
         "SP1": { shop: "Shop 1", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP1" },
         "SP2": { shop: "Shop 2", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP2" },
@@ -166,27 +169,50 @@
       // =========================
       const qs = new URLSearchParams(window.location.search);
       const id = (qs.get("id") || "").trim();
-      let shopName = (qs.get("shop") || "").trim();
-      let reviewUrl = (qs.get("link") || "").trim();
-
-      // fallback to lookup by id
-      if ((!shopName || !reviewUrl) && id && SHOP_LOOKUP[id]) {
-        shopName = SHOP_LOOKUP[id].shop || shopName;
-        reviewUrl = SHOP_LOOKUP[id].link || reviewUrl;
-      }
-
-      if (!shopName) shopName = DEFAULT_SHOP_NAME;
+      const requestedShop = (qs.get("shop") || "").trim();
+      const requestedLink = (qs.get("link") || "").trim();
 
       // URL safety
-      function safeHttpUrl(v) {
+      function normalizeAllowedReviewUrl(v) {
+        if (!v) return null;
         try {
           const u = new URL(v);
-          return (u.protocol === "https:" || u.protocol === "http:") ? u.toString() : null;
+          const host = u.hostname.toLowerCase();
+          const path = u.pathname.toLowerCase();
+          if (u.protocol !== "https:") return null;
+          if (!ALLOWED_REVIEW_HOSTS.has(host)) return null;
+          if (host === "search.google.com") {
+            return path.startsWith("/local/writereview") ? u.toString() : null;
+          }
+          if (host === "google.com" || host === "www.google.com") {
+            return path === "/maps" || path.startsWith("/maps/") ? u.toString() : null;
+          }
+          if (host === "maps.google.com") return u.toString();
+          return null;
         } catch (_) {
           return null;
         }
       }
-      reviewUrl = safeHttpUrl(reviewUrl) || DEFAULT_REVIEW_URL;
+
+      let shopName = DEFAULT_SHOP_NAME;
+      let reviewUrl = DEFAULT_REVIEW_URL;
+      let resolutionSource = "default";
+
+      // Prefer controlled id-based lookup first.
+      if (id && SHOP_LOOKUP[id]) {
+        shopName = SHOP_LOOKUP[id].shop || shopName;
+        reviewUrl = normalizeAllowedReviewUrl(SHOP_LOOKUP[id].link) || reviewUrl;
+        resolutionSource = "id_lookup";
+      } else {
+        if (requestedShop) shopName = requestedShop;
+        const allowedQueryLink = normalizeAllowedReviewUrl(requestedLink);
+        if (allowedQueryLink) {
+          reviewUrl = allowedQueryLink;
+          resolutionSource = "query_link";
+        } else if (requestedLink) {
+          resolutionSource = "blocked_link_fallback";
+        }
+      }
 
       // =========================
       // UI
@@ -200,8 +226,10 @@
 
       headline.textContent = `Thanks for visiting ${shopName}!`;
 
-      if (!qs.get("shop") && !qs.get("link") && !id) {
-        hint.textContent = "Tip: use ?shop=ShopName&link=https://... or ?id=SP1";
+      if (!requestedShop && !requestedLink && !id) {
+        hint.textContent = "Tip: use ?id=SP1 (recommended), or a supported https Google review link.";
+      } else if (requestedLink && resolutionSource === "blocked_link_fallback") {
+        hint.textContent = "Unsupported link was ignored for safety. Redirecting to a trusted Google destination.";
       }
 
       // progress animation
@@ -229,21 +257,29 @@
 
         const body = {
           timestamp: new Date().toISOString(),
-          token: ANALYTICS_TOKEN,
           event: payload.event || "",
           shopId: id || "",
-          shopName: shopName || "",
-          target: payload.target || "",
-          userAgent: navigator.userAgent || "",
-          referrer: document.referrer || ""
+          resolution: resolutionSource,
+          source: payload.source || "",
+          targetHost: payload.targetHost || ""
         };
 
-        // fire-and-forget
+        const raw = JSON.stringify(body);
+
+        try {
+          if (navigator.sendBeacon) {
+            const blob = new Blob([raw], { type: "application/json" });
+            navigator.sendBeacon(ANALYTICS_WEBHOOK, blob);
+            return;
+          }
+        } catch (_) {}
+
+        // fire-and-forget fallback
         fetch(ANALYTICS_WEBHOOK, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: raw,
           keepalive: true
         }).catch(() => {});
       }
@@ -260,7 +296,7 @@
 
         trackEvent({
           event: "shop_redirect",
-          target: reviewUrl,
+          targetHost: new URL(reviewUrl).hostname,
           source: source || "auto"
         });
 
@@ -282,7 +318,8 @@
 
         trackEvent({
           event: "profile_click",
-          target: "https://instagram.com/adiloofm"
+          targetHost: "instagram.com",
+          source: "instagram_link"
         });
 
         const appUrl = "instagram://user?username=adiloofm";
@@ -300,4 +337,3 @@
   </script>
 </body>
 </html>
-
