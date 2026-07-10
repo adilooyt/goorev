@@ -1,0 +1,5 @@
+# Admin tool — local only, never deploy
+admin.html
+
+# macOS
+.DS_Store
