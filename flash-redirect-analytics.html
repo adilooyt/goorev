@@ -261,7 +261,8 @@
           shopId: id || "",
           resolution: resolutionSource,
           source: payload.source || "",
-          targetHost: payload.targetHost || ""
+          targetHost: payload.targetHost || "",
+          originHint: window.location.origin
         };
 
         const raw = JSON.stringify(body);
