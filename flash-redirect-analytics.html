@@ -150,7 +150,7 @@
       // CONFIG
       // =========================
       const REDIRECT_SECONDS = 5; // auto redirect delay
-      const ANALYTICS_WEBHOOK = "https://script.google.com/macros/s/AKfycbz8QPtLuBujD19svvJMTJaTNIIBndjbBcjIpELB6G6Tbeqa0Kj58P35Mnu-B1qDe3Mb/exec"; // optional: set your own endpoint, no client secret required
+      const ANALYTICS_WEBHOOK = "https://script.google.com/macros/s/AKfycbxQiS28KhVg4GkUVenKZEClBj8b_1e3bWJMG6r05zTgNmG8egYTRO1zxJz48D8-9K8_/exec";
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
@@ -255,34 +255,27 @@
       function trackEvent(payload) {
         if (!ANALYTICS_WEBHOOK) return;
 
-        const body = {
-          timestamp: new Date().toISOString(),
-          event: payload.event || "",
-          shopId: id || "",
-          resolution: resolutionSource,
-          source: payload.source || "",
-          targetHost: payload.targetHost || "",
-          originHint: window.location.origin
-        };
+        const params = new URLSearchParams({
+          timestamp:   new Date().toISOString(),
+          event:       payload.event || "",
+          shopId:      id || "",
+          resolution:  resolutionSource,
+          source:      payload.source || "",
+          targetHost:  payload.targetHost || "",
+          originHint:  window.location.origin
+        });
 
-        const raw = JSON.stringify(body);
+        const url = ANALYTICS_WEBHOOK + "?" + params.toString();
 
+        // fire-and-forget GET request
         try {
           if (navigator.sendBeacon) {
-            const blob = new Blob([raw], { type: "application/json" });
-            navigator.sendBeacon(ANALYTICS_WEBHOOK, blob);
+            navigator.sendBeacon(url);
             return;
           }
         } catch (_) {}
 
-        // fire-and-forget fallback
-        fetch(ANALYTICS_WEBHOOK, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: raw,
-          keepalive: true
-        }).catch(() => {});
+        fetch(url, { mode: "no-cors", keepalive: true }).catch(() => {});
       }
 
       // =========================
