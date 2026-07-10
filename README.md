@@ -6,7 +6,7 @@ When a customer taps an NFC card or scans a QR code, they see a branded 5-second
 
 **Live demo:**
 ```
-https://adilooyt.github.io/goorev/flash-redirect-analytics.html?id=SP1
+https://adilooyt.github.io/goorev/?id=SP1
 ```
 
 ---
@@ -33,9 +33,8 @@ Google Reviews page (specific to that shop)
 
 ```
 goorev/
-├── flash-redirect-analytics.html   # Main redirect page (deploy this)
-├── index.html                       # Root entry — redirects to main page
-├── admin.html                       # Local-only shop manager (gitignored)
+├── index.html       # Main redirect page (the whole app lives here)
+├── admin.html       # Local-only shop manager (gitignored)
 ├── .gitignore
 └── README.md
 ```
@@ -95,7 +94,7 @@ Non-HTTPS links and any non-Google domains are silently blocked — the page fal
 Program your NFC tag or QR code with:
 
 ```
-https://adilooyt.github.io/goorev/flash-redirect-analytics.html?id=SP1
+https://adilooyt.github.io/goorev/?id=SP1
 ```
 
 Replace `SP1` with the correct Shop ID for each location.
