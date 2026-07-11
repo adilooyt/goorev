@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Redirecting to Google Reviews…</title>
+  <title>Redirecting to Google Reviewsâ¦</title>
   <meta name="theme-color" content="#0f172a" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
   <meta name="referrer" content="no-referrer" />
@@ -119,14 +119,14 @@
 <body>
   <main class="card" role="main" aria-live="polite">
     <h1 id="headline">Thanks for visiting our shop!</h1>
-    <p class="sub">We’re taking you to our Google Reviews page.</p>
-    <p class="count" id="countText">Redirecting to Google Reviews in 3…</p>
+    <p class="sub">Weâre taking you to our Google Reviews page.</p>
+    <p class="count" id="countText">Redirecting to Google Reviews in 3â¦</p>
 
     <div class="progress" aria-hidden="true">
       <div id="bar" class="bar"></div>
     </div>
 
-    <button id="skipBtn" class="btn" type="button">Skip / Continue Now →</button>
+    <button id="skipBtn" class="btn" type="button">Skip / Continue Now â</button>
 
     <div class="brand">
       <span>Cards &amp; NFC tags by</span>
@@ -160,7 +160,7 @@
       // ID lookup is preferred; query link is only used when no known ID is provided.
       const SHOP_LOOKUP = {
         "SP1": { shop: "Aligarh Muslim University", link: "https://search.google.com/local/writereview?placeid=ChIJUUu8vOWkdDkRmOnQMzdx2to" },
-        "SP2": { shop: "Shop 2", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP2" },
+        "SP2": { shop: "Satyadeo Degree College", link: "https://search.google.com/local/writereview?placeid=ChIJ4Q0yFyUCkjkRh5aDcWR6U9I" },
         "SP3": { shop: "Shop 3", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP3" },
         "SP4": { shop: "Shop 4", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP4" },
         "SP5": { shop: "Shop 5", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP5" },
@@ -354,14 +354,14 @@
       requestAnimationFrame(() => { bar.style.transform = "scaleX(0)"; });
 
       let secondsLeft = Math.ceil(REDIRECT_SECONDS);
-      countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}…`;
+      countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}â¦`;
 
       const countdownTimer = setInterval(() => {
         secondsLeft -= 1;
         if (secondsLeft > 0) {
-          countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}…`;
+          countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}â¦`;
         } else {
-          countText.textContent = "Redirecting now…";
+          countText.textContent = "Redirecting nowâ¦";
           clearInterval(countdownTimer);
         }
       }, 1000);
