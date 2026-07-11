@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Redirecting to Google Reviewsâ¦</title>
   <meta name="theme-color" content="#0f172a" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
   <meta name="referrer" content="no-referrer" />
   <style>
     :root{
@@ -89,7 +92,7 @@
       cursor:pointer;
     }
     .btn:active{transform:translateY(1px)}
-    .btn:hover{background:var(--btnh)}
+    .btn:hover{background:var(--btnh);filter:brightness(.92)}
     .brand{
       margin-top:16px;
       color:var(--muted);
@@ -118,6 +121,9 @@
 </head>
 <body>
   <main class="card" role="main" aria-live="polite">
+    <div id="logoContainer" style="display:none;margin-bottom:18px;">
+      <img id="shopLogo" src="" alt="Shop Logo" style="max-height:80px;max-width:100%;object-fit:contain;border-radius:8px;" />
+    </div>
     <h1 id="headline">Thanks for visiting our shop!</h1>
     <p class="sub">Weâre taking you to our Google Reviews page.</p>
     <p class="count" id="countText">Redirecting to Google Reviews in 3â¦</p>
@@ -154,7 +160,7 @@
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
-      const ALLOWED_REVIEW_HOSTS = new Set(["search.google.com", "www.google.com", "google.com", "maps.google.com"]);
+      const ALLOWED_REVIEW_HOSTS = new Set(["search.google.com", "www.google.com", "google.com", "maps.google.com", "maps.app.goo.gl", "g.page"]);
 
       // Optional ID lookup map. Fill in real shop names and Google Review links.
       // ID lookup is preferred; query link is only used when no known ID is provided.
@@ -305,6 +311,7 @@
             return path === "/maps" || path.startsWith("/maps/") ? u.toString() : null;
           }
           if (host === "maps.google.com") return u.toString();
+          if (host === "maps.app.goo.gl" || host === "g.page") return u.toString();
           return null;
         } catch (_) {
           return null;
@@ -315,10 +322,15 @@
       let reviewUrl = DEFAULT_REVIEW_URL;
       let resolutionSource = "default";
 
+      let themeColor = null;
+      let logo = null;
+
       // Prefer controlled id-based lookup first.
       if (id && SHOP_LOOKUP[id]) {
         shopName = SHOP_LOOKUP[id].shop || shopName;
         reviewUrl = normalizeAllowedReviewUrl(SHOP_LOOKUP[id].link) || reviewUrl;
+        logo = SHOP_LOOKUP[id].logo || null;
+        themeColor = SHOP_LOOKUP[id].themeColor || null;
         resolutionSource = "id_lookup";
       } else {
         if (requestedShop) shopName = requestedShop;
@@ -340,6 +352,8 @@
       const skipBtn = document.getElementById("skipBtn");
       const igLink = document.getElementById("igLink");
       const hint = document.getElementById("hint");
+      const logoContainer = document.getElementById("logoContainer");
+      const shopLogo = document.getElementById("shopLogo");
 
       headline.textContent = `Thanks for visiting ${shopName}!`;
 
@@ -349,9 +363,24 @@
         hint.textContent = "Unsupported link was ignored for safety. Redirecting to a trusted Google destination.";
       }
 
+      // Apply dynamic branding
+      if (logo) {
+        shopLogo.src = logo;
+        logoContainer.style.display = "block";
+      }
+      if (themeColor) {
+        document.documentElement.style.setProperty('--accent', themeColor);
+        document.documentElement.style.setProperty('--accent2', themeColor);
+        document.documentElement.style.setProperty('--btn', themeColor);
+        document.documentElement.style.setProperty('--btnh', themeColor);
+      }
+
       // progress animation
+      bar.style.transitionDuration = "0s";
+      bar.style.transform = "scaleX(1)";
+      bar.offsetHeight; // force reflow
       bar.style.transitionDuration = `${REDIRECT_SECONDS}s`;
-      requestAnimationFrame(() => { bar.style.transform = "scaleX(0)"; });
+      bar.style.transform = "scaleX(0)";
 
       let secondsLeft = Math.ceil(REDIRECT_SECONDS);
       countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}â¦`;
