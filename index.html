@@ -8,8 +8,16 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://www.googletagmanager.com; style-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" />
   <meta name="referrer" content="no-referrer" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-132Q7QN63G"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-132Q7QN63G');
+  </script>
   <style>
     :root{
       --bg:#0f172a;
@@ -141,6 +149,64 @@
       color:#94a3b8;
       font-size:.78rem;
     }
+    /* AI Review Section - simplified */
+    .divider {
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,.12);
+      margin: 22px 0 18px;
+    }
+    .ai-section {
+      text-align: center;
+    }
+    .ai-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 0 0 14px;
+      letter-spacing: .3px;
+    }
+    .ai-textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, .25);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: .95rem;
+      padding: 12px 14px;
+      outline: none;
+      resize: vertical;
+      line-height: 1.6;
+      font-family: inherit;
+      margin-bottom: 12px;
+      min-height: 90px;
+    }
+    .ai-textarea:focus {
+      border-color: var(--accent);
+    }
+    .ai-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #94a3b8;
+      font-size: .9rem;
+      padding: 18px 0;
+    }
+    .ai-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.15);
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ai-label {
+      font-size: .78rem;
+      color: #64748b;
+      margin-bottom: 8px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -149,14 +215,39 @@
       <img id="shopLogo" src="" alt="Shop Logo" style="max-height:80px;max-width:100%;object-fit:contain;border-radius:8px;" />
     </div>
     <h1 id="headline">Thanks for visiting <span id="shopNameSpan">our shop</span>!</h1>
-    <p class="sub">We’re taking you to our Google Reviews page.</p>
-    <p class="count" id="countText">Redirecting to Google Reviews in 3…</p>
+ <p class="sub">Leave a quick review &mdash; it means a lot &#x1F64F;</p>
 
-    <div class="progress" aria-hidden="true">
-      <div id="bar" class="bar"></div>
-    </div>
+    <section id="aiSection" class="ai-section" aria-label="AI Review Assistant">
+      <h2 class="ai-title">Your review is ready ✨</h2>
 
-    <button id="skipBtn" class="btn" type="button">Skip / Continue Now →</button>
+      <div id="aiLoading" class="ai-loading">
+        <div class="ai-spinner"></div>
+        <span>Writing your review…</span>
+      </div>
+
+      <div id="aiReviewBox" style="display:none;">
+        <p class="ai-label">Tap to edit before copying:</p>
+        <textarea id="generatedReview" class="ai-textarea" rows="3" aria-label="Generated review text"></textarea>
+
+        <div style="display:flex;gap:10px;">
+          <button id="refreshReviewBtn" class="btn" type="button" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);flex:0 0 auto;width:50px;min-height:50px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:12px;" aria-label="Regenerate review">
+            <svg style="width:20px;height:20px;color:#94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+          </button>
+          <button id="copyReviewBtn" class="btn" type="button" style="background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);display:flex;align-items:center;justify-content:center;gap:8px;flex:1;">
+            <svg style="width:18px;height:18px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span id="copyBtnText">Copy &amp; Open Google Reviews</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:14px;">
+        <a id="skipToReviewBtn" href="#" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;text-decoration:none;padding:8px 18px;border:1px solid rgba(255,255,255,.1);border-radius:999px;transition:background .15s,color .15s;" onmouseover="this.style.background='rgba(255,255,255,.05)';this.style.color='#e2e8f0'" onmouseout="this.style.background='';this.style.color='#94a3b8'">
+          Skip AI &amp; write manually →
+        </a>
+      </div>
+    </section>
+
+    <div class="divider"></div>
 
     <div class="brand">
       <span>CARDS &amp; NFC TAGS BY</span>
@@ -171,7 +262,6 @@
     </div>
 
     <p class="tiny" id="hint"></p>
-    <p class="tiny">We may collect anonymous click and redirect metrics to improve this page.</p>
   </main>
 
   <script>
@@ -179,8 +269,7 @@
       // =========================
       // CONFIG
       // =========================
-      const REDIRECT_SECONDS = 5; // auto redirect delay
-      const ANALYTICS_WEBHOOK = "https://script.google.com/macros/s/AKfycbxQiS28KhVg4GkUVenKZEClBj8b_1e3bWJMG6r05zTgNmG8egYTRO1zxJz48D8-9K8_/exec";
+      const ANALYTICS_WEBHOOK = "";
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
@@ -189,8 +278,8 @@
       // Optional ID lookup map. Fill in real shop names and Google Review links.
       // ID lookup is preferred; query link is only used when no known ID is provided.
       const SHOP_LOOKUP = {
-        "SP1": { shop: "Aligarh Muslim University", link: "https://search.google.com/local/writereview?placeid=ChIJUUu8vOWkdDkRmOnQMzdx2to" },
-        "SP2": { shop: "Satyadeo Degree College", link: "https://search.google.com/local/writereview?placeid=ChIJ4Q0yFyUCkjkRh5aDcWR6U9I" },
+        "SP1": { shop: "Aligarh Muslim University", link: "https://search.google.com/local/writereview?placeid=ChIJUUu8vOWkdDkRmOnQMzdx2to", category: "University", note: "Historic university established in 1875, known for academic excellence and beautiful campus.", geminiKey: ["AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0","AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo","AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"] },
+        "SP2": { shop: "Satyadeo Degree College", link: "https://search.google.com/local/writereview?placeid=ChIJ4Q0yFyUCkjkRh5aDcWR6U9I", category: "College", note: "Established educational institution offering diverse academic programs.", geminiKey: ["AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0","AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo","AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"] },
         "SP3": { shop: "Shop 3", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP3" },
         "SP4": { shop: "Shop 4", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP4" },
         "SP5": { shop: "Shop 5", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP5" },
@@ -348,6 +437,10 @@
 
       let themeColor = null;
       let logo = null;
+      let customTags = null;
+      let geminiApiKeys = null; // can be array of 3 keys for fallback
+      let category = null;
+      let note = null;
 
       // Prefer controlled id-based lookup first.
       if (id && SHOP_LOOKUP[id]) {
@@ -355,6 +448,14 @@
         reviewUrl = normalizeAllowedReviewUrl(SHOP_LOOKUP[id].link) || reviewUrl;
         logo = SHOP_LOOKUP[id].logo || null;
         themeColor = SHOP_LOOKUP[id].themeColor || null;
+        customTags = SHOP_LOOKUP[id].tags || null;
+        // Support a single key (string) or an array of up to 3 keys for fallback
+        const rawKey = SHOP_LOOKUP[id].geminiKey || null;
+        if (rawKey) {
+          geminiApiKeys = Array.isArray(rawKey) ? rawKey.filter(Boolean) : [rawKey];
+        }
+        category = SHOP_LOOKUP[id].category || null;
+        note = SHOP_LOOKUP[id].note || null;
         resolutionSource = "id_lookup";
       } else {
         if (requestedShop) shopName = requestedShop;
@@ -370,27 +471,12 @@
       // =========================
       // UI
       // =========================
-      const headline = document.getElementById("headline");
-      const countText = document.getElementById("countText");
-      const bar = document.getElementById("bar");
-      const skipBtn = document.getElementById("skipBtn");
       const igLink = document.getElementById("igLink");
-      const hint = document.getElementById("hint");
       const logoContainer = document.getElementById("logoContainer");
       const shopLogo = document.getElementById("shopLogo");
 
       const shopNameSpan = document.getElementById("shopNameSpan");
-      if (shopNameSpan) {
-        shopNameSpan.textContent = shopName;
-      } else {
-        headline.textContent = `Thanks for visiting ${shopName}!`;
-      }
-
-      if (!requestedShop && !requestedLink && !id) {
-        hint.textContent = "Tip: use ?id=SP1 (recommended), or a supported https Google review link.";
-      } else if (requestedLink && resolutionSource === "blocked_link_fallback") {
-        hint.textContent = "Unsupported link was ignored for safety. Redirecting to a trusted Google destination.";
-      }
+      if (shopNameSpan) shopNameSpan.textContent = shopName;
 
       // Apply dynamic branding
       if (logo) {
@@ -405,104 +491,224 @@
         document.documentElement.style.setProperty('--btnh', themeColor);
       }
 
-      // progress animation
-      bar.style.transitionDuration = "0s";
-      bar.style.transform = "scaleX(1)";
-      bar.offsetHeight; // force reflow
-      bar.style.transitionDuration = `${REDIRECT_SECONDS}s`;
-      bar.style.transform = "scaleX(0)";
+      // =========================
+      // ANALYTICS — GA4
+      // =========================
+      function trackEvent(eventName, params) {
+        if (typeof gtag !== 'function') return;
+        gtag('event', eventName, params || {});
+      }
 
-      let secondsLeft = Math.ceil(REDIRECT_SECONDS);
-      countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}…`;
+      // Track page view with shop context
+      trackEvent('shop_page_view', { shop_id: id || 'unknown', shop_name: shopName });
 
-      const countdownTimer = setInterval(() => {
-        secondsLeft -= 1;
-        if (secondsLeft > 0) {
-          countText.textContent = `Redirecting to Google Reviews in ${secondsLeft}…`;
+      // =========================
+      // AI REVIEW — AUTO GENERATE ON PAGE LOAD
+      // =========================
+      const generatedReviewArea = document.getElementById("generatedReview");
+      const aiLoading = document.getElementById("aiLoading");
+      const aiReviewBox = document.getElementById("aiReviewBox");
+      const copyBtn = document.getElementById("copyReviewBtn");
+      const copyBtnText = document.getElementById("copyBtnText");
+
+      // Local Review Generator (fallback when no API key)
+      function generateLocalReview(shop, catg, shopNote) {
+        const useHinglish = Math.random() < 0.4;
+
+        const hinglishReviews = {
+          "university": [
+            `${shop} ekdum mast jagah hai, campus bahut sundar hai aur atmosphere kaafi inspiring. Highly recommend!`,
+            `Yaar sach mein ${shop} bohot achi university hai, yahan ki vibe alag hi level ki hai!`,
+            `${shop} visit kiya tha, zabardast experience tha — campus, faculty sab kuch top class.`
+          ],
+          "college": [
+            `${shop} mein padhai ka mahaul bahut achi hai, faculty bhi kaafi helpful. Must visit!`,
+            `Bhai ${shop} ekdum solid college hai, yahan ki education quality really good hai.`
+          ],
+          "restaurant": [
+            `${shop} ka khana sach mein zabardast tha, aur service bhi bahut fast thi. Jaroor aana chahiye!`,
+            `Yaar ${shop} mein jo khaya, ekdum mast tha! Bilkul paisa vasool.`
+          ],
+          "cafe": [
+            `${shop} ki coffee bahut achi hai aur vibe bhi kaafi cozy. Dobara zaroor aaunga!`,
+            `Bhai ${shop} ekdum chill jagah hai, chai-coffee sab mast. Highly recommend yaar!`
+          ]
+        };
+
+        const hinglishGeneric = [
+          `${shop} bahut achi jagah hai, sach mein ekdum mast experience tha. Zaroor visit karo!`,
+          `Yaar ${shop} really good hai — staff friendly, service fast, bilkul recommend karunga!`,
+          `${shop} se bahut khush hua, zabardast service aur kaafi achi jagah. Must visit!`,
+          `Bhai ${shop} ekdum solid hai, jo bhi jaaye wapas zaroor aayega. Top class!`
+        ];
+
+        const englishReviews = {
+          "university": [
+            `Honestly one of the best campuses I've visited — ${shop} has an incredible atmosphere and rich history.`,
+            `Really loved the vibe at ${shop}, the campus is beautiful and the academic energy is just different.`,
+            `Tbh ${shop} exceeded my expectations, stunning campus and world-class faculty. Highly recommend!`
+          ],
+          "college": [
+            `Super impressed by ${shop} — great learning environment and really helpful faculty.`,
+            `Honestly ${shop} is a solid institution, the atmosphere is great and the teaching quality is top notch.`
+          ],
+          "restaurant": [
+            `Honestly the food at ${shop} was incredible, and the service was super fast too. 100% coming back!`,
+            `Really loved dining at ${shop} — the flavors were amazing and the staff were so friendly.`
+          ],
+          "cafe": [
+            `Tbh ${shop} is my new favorite spot, the coffee is amazing and the vibe is super cozy!`,
+            `Really loved the atmosphere at ${shop} — great drinks, chill vibes, and friendly staff.`
+          ]
+        };
+
+        const englishGeneric = [
+          `Honestly ${shop} was such a great experience, really loved the whole vibe there!`,
+          `Super impressed by ${shop} — friendly staff, great service, and an awesome atmosphere overall.`,
+          `Tbh I wasn't expecting much but ${shop} really blew me away. Highly recommend!`,
+          `Really loved my visit to ${shop}, everything was top notch and the staff were super welcoming.`,
+          `${shop} is genuinely one of the best places I've been to — will definitely be coming back!`
+        ];
+
+        const catLower = (catg || "").toLowerCase().trim();
+
+        if (useHinglish) {
+          const pool = hinglishReviews[catLower] || hinglishGeneric;
+          return pool[Math.floor(Math.random() * pool.length)];
         } else {
-          countText.textContent = "Redirecting now…";
-          clearInterval(countdownTimer);
+          const pool = englishReviews[catLower] || englishGeneric;
+          return pool[Math.floor(Math.random() * pool.length)];
         }
-      }, 1000);
+      }
 
-      // =========================
-      // ANALYTICS
-      // =========================
-      function trackEvent(payload) {
-        if (!ANALYTICS_WEBHOOK) return;
+      // Gemini API Review Generator (multi-key fallback)
+      async function generateGeminiReview(apiKeys, shop, catg, shopNote) {
+        let context = `Place: ${shop}`;
+        if (catg) context += `\nType: ${catg}`;
+        if (shopNote) context += `\nAbout: ${shopNote}`;
 
-        const params = new URLSearchParams({
-          timestamp:   new Date().toISOString(),
-          event:       payload.event || "",
-          shopId:      id || "",
-          resolution:  resolutionSource,
-          source:      payload.source || "",
-          targetHost:  payload.targetHost || "",
-          originHint:  window.location.origin
-        });
+        // Randomly decide style — 40% chance of Hinglish
+        const useHinglish = Math.random() < 0.4;
 
-        const url = ANALYTICS_WEBHOOK + "?" + params.toString();
+        const prompt = useHinglish
+          ? `Write a short Google review for this place in Hinglish (mix of Hindi and English, like how young Indians text):
+${context}
 
-        // fire-and-forget GET request
-        try {
-          if (navigator.sendBeacon) {
-            navigator.sendBeacon(url);
-            return;
+Rules:
+- 1 to 2 sentences only
+- Sound like a real person casually texting, not formal
+- Mix Hindi words naturally like: bahut, achi, mast, ekdum, sach mein, bhai, yaar, must visit, kaafi, zabardast, bilkul
+- No star ratings mentioned
+- No quotes or brackets
+- Keep it genuine and fun`
+          : `Write a short Google review for this place:
+${context}
+
+Rules:
+- 1 to 2 sentences only
+- Sound like a real person, casual and warm — not corporate or robotic
+- Use natural imperfections like "honestly", "tbh", "really", "super", "loved it"
+- Vary sentence structure, don't start with the shop name
+- No star ratings mentioned
+- No quotes or brackets`;
+
+        for (let i = 0; i < apiKeys.length; i++) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKeys[i]}`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: 120, temperature: 1.1 }
+              })
+            });
+            if (!res.ok) {
+              console.warn(`Key ${i + 1} failed (${res.status}), trying next…`);
+              continue;
+            }
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text.trim();
+          } catch (err) {
+            console.warn(`Key ${i + 1} error:`, err.message);
           }
-        } catch (_) {}
-
-        fetch(url, { mode: "no-cors", keepalive: true }).catch(() => {});
+        }
+        throw new Error('All API keys failed');
       }
 
-      // =========================
-      // REDIRECT FLOW
-      // =========================
-      let redirected = false;
-      function redirectNow(source) {
-        if (redirected) return;
-        redirected = true;
-
-        clearInterval(countdownTimer);
-
-        trackEvent({
-          event: "shop_redirect",
-          targetHost: new URL(reviewUrl).hostname,
-          source: source || "auto"
-        });
-
-        // tiny delay helps fire analytics request first
-        setTimeout(() => {
-          window.location.href = reviewUrl;
-        }, 120);
+      // Auto-generate on page load
+      async function autoGenerateReview() {
+        aiLoading.style.display = "flex";
+        aiReviewBox.style.display = "none";
+        try {
+          let review = "";
+          if (geminiApiKeys && geminiApiKeys.length > 0) {
+            review = await generateGeminiReview(geminiApiKeys, shopName, category, note);
+          } else {
+            review = generateLocalReview(shopName, category, note);
+          }
+          generatedReviewArea.value = review;
+        } catch (err) {
+          console.error("AI generation failed, using local fallback:", err);
+          generatedReviewArea.value = generateLocalReview(shopName, category, note);
+        } finally {
+          aiLoading.style.display = "none";
+          aiReviewBox.style.display = "block";
+        }
       }
 
-      const autoTimer = setTimeout(() => redirectNow("auto"), REDIRECT_SECONDS * 1000);
-      skipBtn.addEventListener("click", () => redirectNow("skip_button"));
-      window.addEventListener("pagehide", () => clearTimeout(autoTimer));
+      // Start generating immediately
+      autoGenerateReview();
 
-      // =========================
-      // INSTAGRAM LINK (deeplink + fallback)
-      // =========================
-      igLink.addEventListener("click", function (e) {
-        e.preventDefault();
-
-        trackEvent({
-          event: "profile_click",
-          targetHost: "instagram.com",
-          source: "instagram_link"
-        });
-
-        const appUrl = "instagram://user?username=adiloofm";
-        const webUrl = "https://instagram.com/adiloofm";
-
-        // attempt app
-        window.location.href = appUrl;
-
-        // fallback to web
-        setTimeout(() => {
-          window.open(webUrl, "_blank", "noopener,noreferrer");
-        }, 800);
+      // Refresh button
+      document.getElementById("refreshReviewBtn").addEventListener("click", () => {
+        trackEvent('review_refreshed', { shop_id: id || 'unknown' });
+        autoGenerateReview();
       });
+
+      // Skip button tracking
+      document.getElementById("skipToReviewBtn").addEventListener("click", () => {
+        trackEvent('skip_to_review', { shop_id: id || 'unknown', shop_name: shopName });
+      });
+
+      // Copy & Redirect
+      copyBtn.addEventListener("click", () => {
+        const text = generatedReviewArea.value.trim();
+        if (!text) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(onCopySuccess, onCopyError);
+        } else {
+          try {
+            generatedReviewArea.select();
+            document.execCommand('copy') ? onCopySuccess() : onCopyError();
+          } catch (_) { onCopyError(); }
+        }
+      });
+
+      function onCopySuccess() {
+        copyBtnText.textContent = "Copied! Opening Google Reviews…";
+        copyBtn.style.background = "linear-gradient(135deg,#15803d 0%,#166534 100%)";
+
+        trackEvent('review_copied', {
+          shop_id:   id || 'unknown',
+          shop_name: shopName
+        });
+
+        window.location.href = reviewUrl;
+      }
+
+      function onCopyError() {
+        copyBtnText.textContent = "Failed to copy — please copy manually!";
+        setTimeout(() => { copyBtnText.textContent = "Copy & Open Google Reviews"; }, 2500);
+      }
+
+      // =========================
+      // SKIP BUTTON — go directly to Google Reviews
+      // =========================
+      document.getElementById("skipToReviewBtn").href = reviewUrl;
+
     })();
   </script>
 </body>
