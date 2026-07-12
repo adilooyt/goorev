@@ -2,17 +2,5 @@
 admin.html
 dashboard.html
 
-# QR code source files and generated posters
-100/
-20/
-output/
-canva-qr-batch.csv
-qr-bulk.csv
-qr-links.xlsx
-qr-codes.xlsx
-qr-codes-1to60.xlsx
-qr-codes-61to120.xlsx
-canva-bulk.csv
-
 # macOS
 .DS_Store
