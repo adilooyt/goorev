@@ -450,10 +450,9 @@
 
       <hr class="settings-divider"/>
       <div class="section-title">Pricing</div>
-      <div class="row3">
+      <div class="row2">
         <div class="field"><label for="currency">Currency Symbol</label><input id="currency" type="text" placeholder="₹" autocomplete="off" spellcheck="false" maxlength="4"/></div>
-        <div class="field"><label for="nfcPrice">Price per NFC Tag</label><input id="nfcPrice" type="number" placeholder="2000" min="0"/></div>
-        <div class="field"><label for="scannerPrice">Price per Scanner</label><input id="scannerPrice" type="number" placeholder="1500" min="0"/></div>
+        <div class="field"><label for="bundlePrice">Bundle Price (NFC Tag + Scanner)</label><input id="bundlePrice" type="number" placeholder="349" min="0"/></div>
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -551,12 +550,8 @@
     <div class="modal-title">✏️ Edit Payment — <span id="modalShopName"></span></div>
 
     <div class="field">
-      <label for="mNfcTags">NFC Tags Sold (qty)</label>
-      <input id="mNfcTags" type="number" min="0" placeholder="1"/>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Scanner Sold</span>
-      <label class="toggle"><input id="mScanner" type="checkbox"/><span class="toggle-slider"></span></label>
+      <label for="mQty">Bundles Sold (qty)</label>
+      <input id="mQty" type="number" min="1" placeholder="1"/>
     </div>
     <div class="field">
       <label for="mCustomAmt">Custom Amount <span style="color:var(--muted);font-weight:400">(leave 0 to auto-calculate)</span></label>
@@ -611,9 +606,8 @@
       el('ghPrivateRepo').value  = s.privateRepo  || '';
       el('ghPrivateBranch').value= s.privateBranch|| 'main';
       el('ghToken').value        = s.token        || '';
-      el('currency').value       = s.currency     || '₹';
-      el('nfcPrice').value       = s.nfcPrice     || '';
-      el('scannerPrice').value   = s.scannerPrice || '';
+      el('currency').value     = s.currency    || '₹';
+      el('bundlePrice').value  = s.bundlePrice  || '349';
     } catch (_) {}
   }
 
@@ -631,9 +625,8 @@
       privateRepo:   el('ghPrivateRepo').value.trim(),
       privateBranch: el('ghPrivateBranch').value.trim()  || 'main',
       token:         el('ghToken').value.trim(),
-      currency:      el('currency').value.trim()          || '₹',
-      nfcPrice:      parseFloat(el('nfcPrice').value)     || 0,
-      scannerPrice:  parseFloat(el('scannerPrice').value) || 0,
+      currency:    el('currency').value.trim()       || '₹',
+      bundlePrice: parseFloat(el('bundlePrice').value) || 349,
     };
   }
 
@@ -649,8 +642,8 @@
 
   function calcAmount (p) {
     if (p.customAmount && p.customAmount > 0) return p.customAmount;
-    const s = getSettings();
-    return (p.nfcTags || 0) * s.nfcPrice + (p.scanner ? s.scannerPrice : 0);
+    const { bundlePrice } = getSettings();
+    return (p.qty || 1) * bundlePrice;
   }
 
   function escHtml (s) {
@@ -888,10 +881,6 @@
       const badgeClass = p.paid ? 'badge-paid' : 'badge-unpaid';
       const badgeText  = p.paid ? '✓ Paid' : '✗ Unpaid';
 
-      const scannerHtml = p.scanner
-        ? `<span style="color:var(--green);font-size:.78rem;font-weight:600;">✓ Yes</span>`
-        : `<span style="color:var(--muted);font-size:.78rem;">✗ No</span>`;
-
       const paidDateHtml = p.paid && p.paidDate
         ? `<div class="paid-date">✓ Paid on ${escHtml(p.paidDate)}</div>`
         : '';
@@ -913,12 +902,8 @@
           <hr class="card-divider"/>
           <div class="card-fields">
             <div class="card-field-row">
-              <span class="cf-label">NFC Tags</span>
-              <span class="cf-value">${p.nfcTags || 0} tag${(p.nfcTags||0)!==1?'s':''}</span>
-            </div>
-            <div class="card-field-row">
-              <span class="cf-label">Scanner</span>
-              ${scannerHtml}
+              <span class="cf-label">Bundle (NFC + Scanner)</span>
+              <span class="cf-value">${p.qty || 1} set${(p.qty||1)!==1?'s':''}</span>
             </div>
             <div class="card-field-row">
               <span class="cf-label">Amount</span>
@@ -970,8 +955,7 @@
     const s = shops[id] || {};
     const p = payments[id] || {};
     el('modalShopName').textContent = `${id} — ${s.shop || ''}`;
-    el('mNfcTags').value    = p.nfcTags    || 1;
-    el('mScanner').checked  = !!p.scanner;
+    el('mQty').value      = p.qty         || 1;
     el('mCustomAmt').value  = p.customAmount || 0;
     el('mPaid').checked     = !!p.paid;
     el('mPaidDate').value   = p.paidDate   || '';
@@ -999,8 +983,7 @@
     const p = payments[editingId] || {};
     payments[editingId] = {
       ...p,
-      nfcTags:      parseInt(el('mNfcTags').value)    || 0,
-      scanner:      el('mScanner').checked,
+      qty:          parseInt(el('mQty').value)          || 1,
       customAmount: parseFloat(el('mCustomAmt').value) || 0,
       paid:         el('mPaid').checked,
       paidDate:     el('mPaidDate').value.trim(),
