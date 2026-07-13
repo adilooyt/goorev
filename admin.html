@@ -967,9 +967,10 @@
 
   window.admTestShop = function (id) {
     const { owner, repo } = getSettings();
-    const url = window.location.protocol === 'file:'
-      ? `https://${owner}.github.io/${repo}/index.html?id=${id}`
-      : `index.html?id=${id}`;
+    const isLive = window.location.hostname.endsWith('.github.io');
+    const url = isLive
+      ? `index.html?id=${id}`
+      : `https://${owner}.github.io/${repo}/index.html?id=${id}`;
     window.open(url, '_blank');
   };
 
