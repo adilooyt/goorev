@@ -829,13 +829,21 @@
             <div class="shop-link">${escHtml(link)}</div>
           </div>
           <div class="shop-actions">
-            <button class="btn-ghost" style="font-size:.76rem;padding:5px 9px;" onclick="window.open('index.html?id=${escHtml(id)}','_blank')">Test</button>
+            <button class="btn-ghost" style="font-size:.76rem;padding:5px 9px;" onclick="admTestShop('${escHtml(id)}')">Test</button>
             <button class="btn-ghost" style="font-size:.76rem;padding:5px 9px;" onclick="admEditShop('${escHtml(id)}')">Edit</button>
             <button class="btn-danger" onclick="admDeleteShop('${escHtml(id)}')">Delete</button>
           </div>
         </div>`;
     }).join('');
   }
+
+  window.admTestShop = function (id) {
+    const { owner, repo } = getSettings();
+    const url = window.location.protocol === 'file:'
+      ? `https://${owner}.github.io/${repo}/index.html?id=${id}`
+      : `index.html?id=${id}`;
+    window.open(url, '_blank');
+  };
 
   window.admFilterShops = function () {
     const q = el('adm-searchInput').value.toLowerCase().trim();
