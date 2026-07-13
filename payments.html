@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Goorev — Payment Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #070c18;
+      --surface:   #0f172a;
+      --surface2:  #1a2540;
+      --surface3:  #1e293b;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.13);
+      --text:      #f1f5f9;
+      --muted:     #64748b;
+      --muted2:    #94a3b8;
+      --green:     #22c55e;
+      --green-bg:  rgba(34,197,94,0.10);
+      --red:       #ef4444;
+      --red-bg:    rgba(239,68,68,0.10);
+      --blue:      #3b82f6;
+      --blue-bg:   rgba(59,130,246,0.10);
+      --gold:      #f59e0b;
+      --gold-bg:   rgba(245,158,11,0.10);
+      --purple:    #a855f7;
+      --purple-bg: rgba(168,85,247,0.10);
+      --radius:    16px;
+      --radius-sm: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1a1040 50%, #0f172a 100%);
+      border-bottom: 1px solid var(--border2);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(99,102,241,0.4);
+    }
+    .header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.3px; }
+    .header p  { font-size: .78rem; color: var(--muted2); margin-top: 2px; }
+    .conn-badge {
+      font-size: .72rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 999px;
+      background: var(--surface2); color: var(--muted2);
+      border: 1px solid var(--border2);
+      transition: all .3s;
+    }
+    .conn-badge.connected { background: var(--green-bg); color: var(--green); border-color: rgba(34,197,94,.3); }
+
+    /* ── Warning banner ── */
+    .warning-banner {
+      background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(239,68,68,.08));
+      border-bottom: 1px solid rgba(245,158,11,.2);
+      padding: 10px 24px;
+      font-size: .8rem;
+      color: var(--gold);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .warning-banner a { color: var(--gold); font-weight: 600; }
+
+    /* ── Wrap ── */
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── Settings card ── */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .settings-header {
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .settings-header:hover { background: var(--surface2); }
+    .settings-header-left { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: .95rem; }
+    .settings-body { display: none; padding: 0 20px 20px; }
+    .settings-body.open { display: block; }
+    .chevron { transition: transform .25s; font-size: .8rem; color: var(--muted); }
+    .chevron.open { transform: rotate(180deg); }
+
+    label { display: block; font-size: .78rem; color: var(--muted2); margin-bottom: 5px; font-weight: 500; }
+    input[type="text"], input[type="password"], input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .88rem;
+      font-family: inherit;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .row4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+    @media(max-width:640px) { .row2,.row3,.row4 { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 12px; }
+    .settings-divider { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+    .pricing-title { font-size: .8rem; font-weight: 600; color: var(--muted2); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    /* ── Buttons ── */
+    button {
+      border: 0; border-radius: 9px; font-family: inherit;
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      padding: 9px 18px; transition: all .15s;
+    }
+    button:active { transform: scale(.97); }
+    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+    .btn-primary:hover { opacity: .9; box-shadow: 0 4px 16px rgba(99,102,241,.3); }
+    .btn-success { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+    .btn-success:hover { background: rgba(34,197,94,.18); }
+    .btn-danger  { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,.3); }
+    .btn-danger:hover  { background: rgba(239,68,68,.18); }
+    .btn-ghost   { background: var(--surface2); color: var(--muted2); }
+    .btn-ghost:hover   { background: var(--surface3); color: var(--text); }
+    .btn-save {
+      position: fixed; bottom: 24px; right: 24px;
+      background: linear-gradient(135deg,#22c55e,#16a34a);
+      color: #fff; border-radius: 50px;
+      padding: 13px 28px; font-size: .95rem;
+      box-shadow: 0 6px 28px rgba(34,197,94,.35);
+      z-index: 40; display: none;
+    }
+    .btn-save.visible { display: block; }
+    .btn-save:hover { box-shadow: 0 8px 32px rgba(34,197,94,.45); }
+    button:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    /* ── Summary cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    @media(max-width:780px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:420px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      padding: 1px;
+      background: var(--card-grad);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: .5;
+    }
+    .summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+    .sc-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .sc-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+    .sc-value { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+    .sc-sub { font-size: .75rem; color: var(--muted2); margin-top: 5px; }
+    .sc-green  { --card-grad: linear-gradient(135deg,#22c55e,#16a34a); }
+    .sc-green .sc-value  { color: var(--green); }
+    .sc-red    { --card-grad: linear-gradient(135deg,#ef4444,#dc2626); }
+    .sc-red .sc-value    { color: var(--red); }
+    .sc-blue   { --card-grad: linear-gradient(135deg,#3b82f6,#2563eb); }
+    .sc-blue .sc-value   { color: var(--blue); }
+    .sc-purple { --card-grad: linear-gradient(135deg,#a855f7,#9333ea); }
+    .sc-purple .sc-value { color: var(--purple); }
+
+    /* ── Progress section ── */
+    .progress-section {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    @media(max-width:600px) { .progress-section { flex-direction: column; gap: 20px; } }
+    .donut-wrap { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+    .donut-wrap svg { transform: rotate(-90deg); }
+    .donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .donut-pct { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+    .donut-lbl { font-size: .6rem; color: var(--muted); font-weight: 600; letter-spacing: .5px; }
+    .progress-info { flex: 1; }
+    .progress-title { font-size: 1rem; font-weight: 700; margin-bottom: 5px; }
+    .progress-sub   { font-size: .82rem; color: var(--muted2); margin-bottom: 16px; }
+    .prog-bar-wrap  { background: var(--surface3); border-radius: 999px; height: 10px; overflow: hidden; }
+    .prog-bar-fill  {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+    .prog-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: .75rem; }
+    .prog-paid { color: var(--green); font-weight: 600; }
+    .prog-unpaid { color: var(--red); font-weight: 600; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; align-items: center;
+      gap: 10px; margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 4px; }
+    .filter-tab {
+      border: 0; background: transparent; color: var(--muted2);
+      font-size: .82rem; font-weight: 600; padding: 6px 14px; border-radius: 7px;
+      cursor: pointer; transition: all .15s;
+    }
+    .filter-tab.active { background: var(--surface3); color: var(--text); }
+    .filter-tab:active { transform: none; }
+    .search-wrap { flex: 1; min-width: 180px; position: relative; }
+    .search-wrap input { padding-left: 34px; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .count-badge { font-size: .75rem; color: var(--muted); padding: 4px 10px; background: var(--surface); border: 1px solid var(--border2); border-radius: 999px; white-space: nowrap; }
+
+    /* ── Shop cards grid ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media(max-width:900px) { .cards-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:560px) { .cards-grid { grid-template-columns: 1fr; } }
+
+    .shop-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex; flex-direction: column; gap: 14px;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .shop-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .shop-card.paid::after   { background: linear-gradient(90deg,#22c55e,#16a34a); }
+    .shop-card.unpaid::after { background: linear-gradient(90deg,#ef4444,#dc2626); }
+    .shop-card.unset::after  { background: linear-gradient(90deg,#64748b,#475569); }
+    .shop-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+    .shop-card.paid   { border-color: rgba(34,197,94,.18); }
+    .shop-card.unpaid { border-color: rgba(239,68,68,.18); }
+
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+    .card-id  { font-size: .68rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .card-name { font-size: .95rem; font-weight: 700; line-height: 1.2; }
+    .card-category { font-size: .72rem; color: var(--muted2); margin-top: 2px; }
+    .status-badge {
+      font-size: .65rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 999px; flex-shrink: 0;
+    }
+    .badge-paid   { background: var(--green-bg);   color: var(--green);  border: 1px solid rgba(34,197,94,.3); }
+    .badge-unpaid { background: var(--red-bg);     color: var(--red);    border: 1px solid rgba(239,68,68,.3); }
+    .badge-unset  { background: var(--surface2);   color: var(--muted);  border: 1px solid var(--border2); }
+
+    .card-fields { display: flex; flex-direction: column; gap: 8px; }
+    .card-field-row { display: flex; align-items: center; justify-content: space-between; }
+    .cf-label { font-size: .75rem; color: var(--muted2); }
+    .cf-value { font-size: .82rem; font-weight: 600; color: var(--text); }
+    .cf-amount { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+    .card-divider { border: 0; border-top: 1px solid var(--border); }
+
+    .card-amount-row { display: flex; align-items: center; justify-content: space-between; }
+    .amount-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    .paid-date { font-size: .72rem; color: var(--green); display: flex; align-items: center; gap: 4px; }
+
+    .card-actions { display: flex; gap: 8px; }
+    .card-actions button { flex: 1; padding: 8px 10px; font-size: .78rem; border-radius: 8px; }
+    .btn-mark-paid   { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,.25); }
+    .btn-mark-paid:hover   { background: rgba(34,197,94,.2); }
+    .btn-mark-unpaid { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,.25); }
+    .btn-mark-unpaid:hover { background: rgba(239,68,68,.2); }
+    .btn-edit-card   { background: var(--surface2); color: var(--muted2); }
+    .btn-edit-card:hover   { background: var(--surface3); color: var(--text); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      grid-column: 1/-1;
+      text-align: center; padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .emoji { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: .92rem; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+      z-index: 100; display: none;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%; max-width: 460px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions button { flex: 1; padding: 10px; }
+
+    /* Toggle switch */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+    .toggle-label { font-size: .88rem; font-weight: 500; }
+    .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--surface3); border-radius: 999px;
+      transition: background .2s;
+      border: 1px solid var(--border2);
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      left: 2px; top: 2px;
+      background: var(--muted2); border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--green-bg); border-color: rgba(34,197,94,.4); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--green); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 999px; padding: 10px 22px;
+      font-size: .85rem; white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+      z-index: 200;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok  { border-color: rgba(34,197,94,.4);  color: var(--green); }
+    #toast.err { border-color: rgba(239,68,68,.4);   color: var(--red); }
+    #toast.inf { border-color: rgba(59,130,246,.4);  color: var(--blue); }
+
+    /* ── Loading skeleton ── */
+    @keyframes shimmer { 0%{background-position:-600px 0} 100%{background-position:600px 0} }
+    .skeleton {
+      background: linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    .skeleton-card { height: 220px; border-radius: var(--radius); }
+
+    /* ── Misc ── */
+    code { font-family: monospace; font-size: .82em; background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-icon">💳</div>
+    <div>
+      <h1>Payment Tracker</h1>
+      <p>NFC Tags &amp; Scanner sales</p>
+    </div>
+  </div>
+  <span class="conn-badge" id="connBadge">● Not connected</span>
+</header>
+
+<!-- Warning -->
+<div class="warning-banner">
+  ⚠️ <strong>Security:</strong>&nbsp; Make your GitHub repo <strong>private</strong> so only you can see payment data.
+  <a href="https://github.com/settings/repositories" target="_blank" rel="noopener">Do it now →</a>
+</div>
+
+<div class="wrap">
+
+  <!-- Settings -->
+  <div class="settings-card">
+    <div class="settings-header" onclick="toggleSettings()">
+      <div class="settings-header-left">
+        ⚙️ &nbsp;Settings &amp; Pricing
+      </div>
+      <span class="chevron" id="chevron">▼</span>
+    </div>
+    <div class="settings-body" id="settingsBody">
+      <div class="section-title">GitHub Connection</div>
+      <div class="row4">
+        <div class="field"><label for="ghOwner">Username</label><input id="ghOwner" type="text" placeholder="adilooyt" autocomplete="off" spellcheck="false"/></div>
+        <div class="field"><label for="ghRepo">Repository</label><input id="ghRepo" type="text" placeholder="goorev" autocomplete="off" spellcheck="false"/></div>
+        <div class="field"><label for="ghBranch">Branch</label><input id="ghBranch" type="text" placeholder="main" autocomplete="off" spellcheck="false"/></div>
+        <div class="field"><label for="ghToken">Personal Access Token</label><input id="ghToken" type="password" placeholder="ghp_••••••••••••" autocomplete="off" spellcheck="false"/></div>
+      </div>
+
+      <hr class="settings-divider"/>
+      <div class="section-title">Pricing</div>
+      <div class="row3">
+        <div class="field"><label for="currency">Currency Symbol</label><input id="currency" type="text" placeholder="₹" autocomplete="off" spellcheck="false" maxlength="4"/></div>
+        <div class="field"><label for="nfcPrice">Price per NFC Tag</label><input id="nfcPrice" type="number" placeholder="2000" min="0"/></div>
+        <div class="field"><label for="scannerPrice">Price per Scanner</label><input id="scannerPrice" type="number" placeholder="1500" min="0"/></div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-primary" id="loadBtn" onclick="loadAll()">🔄 Load Data from GitHub</button>
+        <button class="btn-ghost"   onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section-title">Overview</div>
+  <div class="summary-grid">
+    <div class="summary-card sc-green">
+      <div class="sc-icon">💰</div>
+      <div class="sc-label">Total Collected</div>
+      <div class="sc-value" id="valCollected">—</div>
+      <div class="sc-sub" id="subCollected">waiting for data</div>
+    </div>
+    <div class="summary-card sc-red">
+      <div class="sc-icon">⏳</div>
+      <div class="sc-label">Outstanding</div>
+      <div class="sc-value" id="valOutstanding">—</div>
+      <div class="sc-sub" id="subOutstanding">waiting for data</div>
+    </div>
+    <div class="summary-card sc-blue">
+      <div class="sc-icon">🏪</div>
+      <div class="sc-label">Shops Paid</div>
+      <div class="sc-value" id="valPaid">—</div>
+      <div class="sc-sub" id="subPaid">waiting for data</div>
+    </div>
+    <div class="summary-card sc-purple">
+      <div class="sc-icon">📊</div>
+      <div class="sc-label">Collection Rate</div>
+      <div class="sc-value" id="valRate">—</div>
+      <div class="sc-sub" id="subRate">waiting for data</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="donut-wrap">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="44" fill="none" stroke="#1e293b" stroke-width="13"/>
+        <circle id="donutArc" cx="55" cy="55" r="44" fill="none" stroke="#22c55e" stroke-width="13"
+                stroke-linecap="round"
+                stroke-dasharray="0 276.46"
+                style="transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1)"/>
+      </svg>
+      <div class="donut-center">
+        <div class="donut-pct" id="donutPct">0%</div>
+        <div class="donut-lbl">PAID</div>
+      </div>
+    </div>
+    <div class="progress-info">
+      <div class="progress-title" id="progTitle">Load data to see progress</div>
+      <div class="progress-sub"  id="progSub">Enter your GitHub settings above and click Load Data</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" id="progBar" style="width:0%"></div></div>
+      <div class="prog-labels">
+        <span class="prog-paid"   id="progPaidLbl">₹0 collected</span>
+        <span class="prog-unpaid" id="progUnpaidLbl">₹0 pending</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all"    onclick="setFilter('all',this)">All</button>
+      <button class="filter-tab"        data-filter="unpaid" onclick="setFilter('unpaid',this)">🔴 Unpaid</button>
+      <button class="filter-tab"        data-filter="paid"   onclick="setFilter('paid',this)">🟢 Paid</button>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Search shop name or ID…" autocomplete="off" spellcheck="false" oninput="applyFilter()"/>
+    </div>
+    <span class="count-badge" id="countBadge">0 shops</span>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards-grid" id="cardsGrid">
+    <div class="empty-state">
+      <div class="emoji">📡</div>
+      <p>Connect to GitHub and load data to get started.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Save button -->
+<button class="btn-save" id="saveBtn" onclick="saveToGitHub()">💾 Save Changes to GitHub</button>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Payment — <span id="modalShopName"></span></div>
+
+    <div class="field">
+      <label for="mNfcTags">NFC Tags Sold (qty)</label>
+      <input id="mNfcTags" type="number" min="0" placeholder="1"/>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Scanner Sold</span>
+      <label class="toggle"><input id="mScanner" type="checkbox"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="field">
+      <label for="mCustomAmt">Custom Amount <span style="color:var(--muted);font-weight:400">(leave 0 to auto-calculate)</span></label>
+      <input id="mCustomAmt" type="number" min="0" placeholder="0"/>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Paid</span>
+      <label class="toggle"><input id="mPaid" type="checkbox" onchange="togglePaidDate()"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="field" id="mPaidDateWrap" style="display:none">
+      <label for="mPaidDate">Payment Date</label>
+      <input id="mPaidDate" type="text" placeholder="e.g. 10 Jul 2026"/>
+    </div>
+    <div class="field">
+      <label for="mNote">Note</label>
+      <input id="mNote" type="text" placeholder="e.g. Follow up needed…" autocomplete="off"/>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveModal()">Save</button>
+      <button class="btn-ghost"   onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+(function () {
+  /* ────────────────────────────────
+     State
+  ──────────────────────────────── */
+  let shops    = {};    // { SP1: { shop, link, category, ... } }
+  let payments = {};    // { SP1: { nfcTags, scanner, customAmount, paid, paidDate, note } }
+  let paymentsSha = ''; // for GitHub update
+  let dirty    = false;
+  let currentFilter = 'all';
+  let editingId = null;
+
+  const SETTINGS_KEY = 'goorev_payments_v1';
+
+  /* ────────────────────────────────
+     Settings
+  ──────────────────────────────── */
+  function loadSettings () {
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      el('ghOwner').value     = s.owner        || '';
+      el('ghRepo').value      = s.repo         || '';
+      el('ghBranch').value    = s.branch       || 'main';
+      el('ghToken').value     = s.token        || '';
+      el('currency').value    = s.currency     || '₹';
+      el('nfcPrice').value    = s.nfcPrice     || '';
+      el('scannerPrice').value= s.scannerPrice || '';
+    } catch (_) {}
+  }
+
+  window.saveSettings = function () {
+    const s = getSettings();
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    toast('Settings saved.', 'ok');
+  };
+
+  function getSettings () {
+    return {
+      owner:        el('ghOwner').value.trim(),
+      repo:         el('ghRepo').value.trim(),
+      branch:       el('ghBranch').value.trim()     || 'main',
+      token:        el('ghToken').value.trim(),
+      currency:     el('currency').value.trim()     || '₹',
+      nfcPrice:     parseFloat(el('nfcPrice').value)     || 0,
+      scannerPrice: parseFloat(el('scannerPrice').value)  || 0,
+    };
+  }
+
+  /* ────────────────────────────────
+     Helpers
+  ──────────────────────────────── */
+  function el (id) { return document.getElementById(id); }
+
+  function fmt (n) {
+    const { currency } = getSettings();
+    return currency + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+
+  function calcAmount (p) {
+    if (p.customAmount && p.customAmount > 0) return p.customAmount;
+    const s = getSettings();
+    return (p.nfcTags || 0) * s.nfcPrice + (p.scanner ? s.scannerPrice : 0);
+  }
+
+  function escHtml (s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function b64ToUtf8 (str) {
+    const bin = atob(str.replace(/\n/g,''));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function utf8ToB64 (str) {
+    const bytes = new TextEncoder().encode(str);
+    const bin   = Array.from(bytes, b => String.fromCharCode(b)).join('');
+    return btoa(bin);
+  }
+
+  /* ────────────────────────────────
+     GitHub API
+  ──────────────────────────────── */
+  async function ghFetch (path, opts = {}) {
+    const { token } = getSettings();
+    if (!token) throw new Error('No GitHub token set.');
+    const res = await fetch('https://api.github.com' + path, {
+      ...opts,
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(opts.headers || {})
+      }
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null; // file not found — first time
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `GitHub error ${res.status}`);
+    }
+    return res.json();
+  }
+
+  /* ────────────────────────────────
+     Load All
+  ──────────────────────────────── */
+  window.loadAll = async function () {
+    const { owner, repo, branch } = getSettings();
+    if (!owner || !repo) { toast('Fill in username and repository first.', 'err'); return; }
+
+    const btn = el('loadBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Loading…';
+
+    try {
+      // 1. Load shops from index.html
+      const indexData = await ghFetch(`/repos/${owner}/${repo}/contents/index.html?ref=${branch}`);
+      if (!indexData) throw new Error('index.html not found in repo.');
+      const html = b64ToUtf8(indexData.content);
+      shops = parseShopLookup(html);
+
+      // 2. Load payments.json (OK if 404 — means first time)
+      const pmtData = await ghFetch(`/repos/${owner}/${repo}/contents/payments.json?ref=${branch}`);
+      if (pmtData) {
+        paymentsSha = pmtData.sha;
+        const parsed = JSON.parse(b64ToUtf8(pmtData.content));
+        payments = parsed.payments || parsed; // support both {payments:{}} and flat
+      } else {
+        paymentsSha = '';
+        payments = {};
+      }
+
+      // Ensure every shop has a payment entry
+      Object.keys(shops).forEach(id => {
+        if (!payments[id]) payments[id] = { nfcTags: 1, scanner: false, customAmount: 0, paid: false, paidDate: '', note: '' };
+      });
+
+      el('connBadge').textContent = '● Connected';
+      el('connBadge').className = 'conn-badge connected';
+
+      // Auto-close settings
+      if (el('settingsBody').classList.contains('open')) toggleSettings();
+
+      render();
+      toast(`Loaded ${Object.keys(shops).length} shops.`, 'ok');
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(getSettings())); // auto-save
+    } catch (e) {
+      toast(e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔄 Load Data from GitHub';
+    }
+  };
+
+  function parseShopLookup (html) {
+    const m = html.match(/const SHOP_LOOKUP\s*=\s*(\{[\s\S]*?\});/);
+    if (!m) throw new Error('Could not find SHOP_LOOKUP in index.html');
+    return new Function('return ' + m[1])();
+  }
+
+  /* ────────────────────────────────
+     Save to GitHub
+  ──────────────────────────────── */
+  window.saveToGitHub = async function () {
+    const { owner, repo, branch, token } = getSettings();
+    if (!token) { toast('No GitHub token.', 'err'); return; }
+
+    const btn = el('saveBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving…';
+
+    try {
+      const payload = { payments, savedAt: new Date().toISOString() };
+      const encoded = utf8ToB64(JSON.stringify(payload, null, 2));
+
+      const body = {
+        message: 'payments: update via payment tracker',
+        content: encoded,
+        branch
+      };
+      if (paymentsSha) body.sha = paymentsSha;
+
+      const res = await ghFetch(`/repos/${owner}/${repo}/contents/payments.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      paymentsSha = res.content.sha;
+      dirty = false;
+      btn.classList.remove('visible');
+      toast('Saved to GitHub ✓', 'ok');
+    } catch (e) {
+      toast(e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Save Changes to GitHub';
+    }
+  };
+
+  /* ────────────────────────────────
+     Render
+  ──────────────────────────────── */
+  function markDirty () {
+    dirty = true;
+    el('saveBtn').classList.add('visible');
+  }
+
+  function render () {
+    renderSummary();
+    renderCards();
+  }
+
+  function renderSummary () {
+    const keys = Object.keys(shops);
+    if (!keys.length) return;
+
+    let collected = 0, outstanding = 0, paidCount = 0;
+    keys.forEach(id => {
+      const p = payments[id] || {};
+      const amt = calcAmount(p);
+      if (p.paid) { collected += amt; paidCount++; }
+      else { outstanding += amt; }
+    });
+
+    const total = collected + outstanding;
+    const rate  = total > 0 ? Math.round(collected / total * 100) : 0;
+    const unpaidCount = keys.length - paidCount;
+
+    el('valCollected').textContent   = fmt(collected);
+    el('subCollected').textContent   = `from ${paidCount} shop${paidCount!==1?'s':''}`;
+    el('valOutstanding').textContent = fmt(outstanding);
+    el('subOutstanding').textContent = `from ${unpaidCount} shop${unpaidCount!==1?'s':''}`;
+    el('valPaid').textContent        = `${paidCount}/${keys.length}`;
+    el('subPaid').textContent        = `${unpaidCount} still unpaid`;
+    el('valRate').textContent        = rate + '%';
+    el('subRate').textContent        = rate >= 80 ? '🎉 Great progress!' : rate >= 50 ? 'Keep going!' : 'Just getting started';
+
+    // Donut
+    const circumference = 2 * Math.PI * 44; // 276.46
+    const filled = circumference * rate / 100;
+    el('donutArc').setAttribute('stroke-dasharray', `${filled} ${circumference}`);
+    el('donutPct').textContent = rate + '%';
+
+    // Progress bar
+    el('progBar').style.width = rate + '%';
+    el('progTitle').textContent = rate === 100 ? '🎉 All payments collected!' :
+                                  rate === 0   ? 'No payments received yet' :
+                                  `${paidCount} of ${keys.length} shops have paid`;
+    el('progSub').textContent = `${fmt(collected)} collected · ${fmt(outstanding)} still pending`;
+    el('progPaidLbl').textContent   = fmt(collected) + ' collected';
+    el('progUnpaidLbl').textContent = fmt(outstanding) + ' pending';
+  }
+
+  function renderCards () {
+    const keys = Object.keys(shops);
+    const q    = el('searchInput').value.toLowerCase().trim();
+    const grid = el('cardsGrid');
+
+    if (!keys.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="emoji">📡</div><p>Connect to GitHub and load data to get started.</p></div>`;
+      el('countBadge').textContent = '0 shops';
+      return;
+    }
+
+    const { currency } = getSettings();
+
+    const filtered = keys.filter(id => {
+      const s = shops[id];
+      const p = payments[id] || {};
+      if (currentFilter === 'paid'   && !p.paid) return false;
+      if (currentFilter === 'unpaid' && p.paid)  return false;
+      if (q) {
+        const hay = (id + ' ' + (s.shop||'')).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    el('countBadge').textContent = `${filtered.length} shop${filtered.length!==1?'s':''}`;
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>No shops match your filter.</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(id => {
+      const s = shops[id] || {};
+      const p = payments[id] || {};
+      const amt = calcAmount(p);
+      const state = p.paid ? 'paid' : 'unpaid';
+      const badgeClass = p.paid ? 'badge-paid' : 'badge-unpaid';
+      const badgeText  = p.paid ? '✓ Paid' : '✗ Unpaid';
+
+      const scannerHtml = p.scanner
+        ? `<span style="color:var(--green);font-size:.78rem;font-weight:600;">✓ Yes</span>`
+        : `<span style="color:var(--muted);font-size:.78rem;">✗ No</span>`;
+
+      const paidDateHtml = p.paid && p.paidDate
+        ? `<div class="paid-date">✓ Paid on ${escHtml(p.paidDate)}</div>`
+        : '';
+
+      const actionBtn = p.paid
+        ? `<button class="btn-mark-unpaid" onclick="togglePaid('${escHtml(id)}',false)">Mark Unpaid</button>`
+        : `<button class="btn-mark-paid"   onclick="togglePaid('${escHtml(id)}',true)">Mark Paid ✓</button>`;
+
+      return `
+        <div class="shop-card ${state}" id="card-${escHtml(id)}">
+          <div class="card-top">
+            <div>
+              <div class="card-id">${escHtml(id)}</div>
+              <div class="card-name">${escHtml(s.shop || '—')}</div>
+              <div class="card-category">${escHtml(s.category || '')}</div>
+            </div>
+            <span class="status-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <hr class="card-divider"/>
+          <div class="card-fields">
+            <div class="card-field-row">
+              <span class="cf-label">NFC Tags</span>
+              <span class="cf-value">${p.nfcTags || 0} tag${(p.nfcTags||0)!==1?'s':''}</span>
+            </div>
+            <div class="card-field-row">
+              <span class="cf-label">Scanner</span>
+              ${scannerHtml}
+            </div>
+            <div class="card-field-row">
+              <span class="cf-label">Amount</span>
+              <span class="cf-value" style="color:${p.paid?'var(--green)':'var(--text)'};font-size:.92rem;">${fmt(amt)}</span>
+            </div>
+            ${p.note ? `<div class="card-field-row"><span class="cf-label" style="font-style:italic;color:var(--muted)">📝 ${escHtml(p.note)}</span></div>` : ''}
+          </div>
+          ${paidDateHtml}
+          <div class="card-actions">
+            ${actionBtn}
+            <button class="btn-edit-card" onclick="openModal('${escHtml(id)}')">Edit</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ────────────────────────────────
+     Toggle paid
+  ──────────────────────────────── */
+  window.togglePaid = function (id, paid) {
+    if (!payments[id]) payments[id] = {};
+    payments[id].paid = paid;
+    if (paid && !payments[id].paidDate) {
+      const now = new Date();
+      payments[id].paidDate = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    }
+    if (!paid) payments[id].paidDate = '';
+    markDirty();
+    render();
+  };
+
+  /* ────────────────────────────────
+     Filter & Search
+  ──────────────────────────────── */
+  window.setFilter = function (f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderCards();
+  };
+
+  window.applyFilter = function () { renderCards(); };
+
+  /* ────────────────────────────────
+     Modal
+  ──────────────────────────────── */
+  window.openModal = function (id) {
+    editingId = id;
+    const s = shops[id] || {};
+    const p = payments[id] || {};
+    el('modalShopName').textContent = `${id} — ${s.shop || ''}`;
+    el('mNfcTags').value    = p.nfcTags    || 1;
+    el('mScanner').checked  = !!p.scanner;
+    el('mCustomAmt').value  = p.customAmount || 0;
+    el('mPaid').checked     = !!p.paid;
+    el('mPaidDate').value   = p.paidDate   || '';
+    el('mNote').value       = p.note       || '';
+    el('mPaidDateWrap').style.display = p.paid ? '' : 'none';
+    el('modalOverlay').classList.add('open');
+  };
+
+  window.closeModal = function (e) {
+    if (e && e.target !== el('modalOverlay')) return;
+    el('modalOverlay').classList.remove('open');
+    editingId = null;
+  };
+
+  window.togglePaidDate = function () {
+    el('mPaidDateWrap').style.display = el('mPaid').checked ? '' : 'none';
+    if (el('mPaid').checked && !el('mPaidDate').value) {
+      const now = new Date();
+      el('mPaidDate').value = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    }
+  };
+
+  window.saveModal = function () {
+    if (!editingId) return;
+    const p = payments[editingId] || {};
+    payments[editingId] = {
+      ...p,
+      nfcTags:      parseInt(el('mNfcTags').value)    || 0,
+      scanner:      el('mScanner').checked,
+      customAmount: parseFloat(el('mCustomAmt').value) || 0,
+      paid:         el('mPaid').checked,
+      paidDate:     el('mPaidDate').value.trim(),
+      note:         el('mNote').value.trim()
+    };
+    el('modalOverlay').classList.remove('open');
+    editingId = null;
+    markDirty();
+    render();
+    toast('Updated.', 'ok');
+  };
+
+  /* ────────────────────────────────
+     Settings toggle
+  ──────────────────────────────── */
+  window.toggleSettings = function () {
+    const body = el('settingsBody');
+    const chev = el('chevron');
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+  };
+
+  /* ────────────────────────────────
+     Toast
+  ──────────────────────────────── */
+  let _tt;
+  function toast (msg, type) {
+    const t = el('toast');
+    t.textContent = msg;
+    t.className   = 'show ' + (type || 'inf');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => { t.className = ''; }, 3500);
+  }
+
+  /* ────────────────────────────────
+     Keyboard close modal
+  ──────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') el('modalOverlay').classList.remove('open');
+  });
+
+  /* ────────────────────────────────
+     Warn on unsaved changes
+  ──────────────────────────────── */
+  window.addEventListener('beforeunload', e => {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  /* ────────────────────────────────
+     Init
+  ──────────────────────────────── */
+  loadSettings();
+  // Open settings by default if no token saved
+  const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+  if (!saved.token) {
+    el('settingsBody').classList.add('open');
+    el('chevron').classList.add('open');
+  }
+
+})();
+</script>
+</body>
+</html>
