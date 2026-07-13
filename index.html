@@ -274,6 +274,12 @@
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
       const ALLOWED_REVIEW_HOSTS = new Set(["search.google.com", "www.google.com", "google.com", "maps.google.com", "maps.app.goo.gl", "g.page"]);
 
+      const GLOBAL_GEMINI_KEYS = [
+        "AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0",
+        "AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo",
+        "AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"
+      ];
+
       // Optional ID lookup map. Fill in real shop names and Google Review links.
       // ID lookup is preferred; query link is only used when no known ID is provided.
       const SHOP_LOOKUP = {
@@ -452,6 +458,8 @@
         const rawKey = SHOP_LOOKUP[id].geminiKey || null;
         if (rawKey) {
           geminiApiKeys = Array.isArray(rawKey) ? rawKey.filter(Boolean) : [rawKey];
+        } else {
+          geminiApiKeys = GLOBAL_GEMINI_KEYS;
         }
         category = SHOP_LOOKUP[id].category || null;
         note = SHOP_LOOKUP[id].note || null;
@@ -611,9 +619,10 @@ Rules:
 - No star ratings mentioned
 - No quotes or brackets`;
 
-        for (let i = 0; i < apiKeys.length; i++) {
+        const shuffled = [...apiKeys].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < shuffled.length; i++) {
           try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKeys[i]}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${shuffled[i]}`;
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
