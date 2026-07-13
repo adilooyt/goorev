@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Goorev Hub</title>
+  <title>Adiloo Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
@@ -404,7 +404,7 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <div class="login-logo">⚡</div>
-    <h2>Goorev Hub</h2>
+    <h2>Adiloo Hub</h2>
     <p>Please enter your GitHub Access Token to unlock</p>
     
     <div class="field" style="text-align: left;">
@@ -438,7 +438,7 @@
   <div class="header-left">
     <div class="header-icon">⚡</div>
     <div>
-      <h1>Goorev Hub</h1>
+      <h1>Adiloo Hub</h1>
       <p>Shop Manager &amp; Payments</p>
     </div>
   </div>
@@ -1252,7 +1252,7 @@
           const encoded = utf8ToB64(patched);
           await ghFetch(`/repos/${owner}/${repo}/contents/${file}`, {
             method:'PUT', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ message:'admin: update SHOP_LOOKUP via Goorev Hub', content:encoded, sha:admFileSha, branch })
+            body: JSON.stringify({ message:'admin: update SHOP_LOOKUP via Adiloo Hub', content:encoded, sha:admFileSha, branch })
           });
           shopSuccess = true;
         }
@@ -1264,7 +1264,7 @@
         const { owner, privateRepo, privateBranch } = getSettings();
         if (!privateRepo) throw new Error('Please configure private repo name in Settings.');
         const encoded = utf8ToB64(JSON.stringify({payments:pmtPayments,savedAt:new Date().toISOString()},null,2));
-        const body = {message:'payments: update via Goorev Hub',content:encoded,branch:privateBranch};
+        const body = {message:'payments: update via Adiloo Hub',content:encoded,branch:privateBranch};
         if(pmtPaymentsSha) body.sha = pmtPaymentsSha;
         const res = await ghFetch(`/repos/${owner}/${privateRepo}/contents/payments.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         pmtPaymentsSha = res.content.sha;
