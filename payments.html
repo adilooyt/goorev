@@ -420,9 +420,8 @@
 </header>
 
 <!-- Warning -->
-<div class="warning-banner">
-  ⚠️ <strong>Security:</strong>&nbsp; Make your GitHub repo <strong>private</strong> so only you can see payment data.
-  <a href="https://github.com/settings/repositories" target="_blank" rel="noopener">Do it now →</a>
+<div class="warning-banner" style="background:linear-gradient(90deg,rgba(34,197,94,.1),rgba(34,197,94,.04));border-color:rgba(34,197,94,.2);color:var(--green);">
+  🔒 <strong>Secure:</strong>&nbsp; Payment data is saved to your <strong>private</strong> repo (goorev-payments). Your public review page stays fully online.
 </div>
 
 <div class="wrap">
@@ -436,11 +435,16 @@
       <span class="chevron" id="chevron">▼</span>
     </div>
     <div class="settings-body" id="settingsBody">
-      <div class="section-title">GitHub Connection</div>
-      <div class="row4">
+      <div class="section-title">🌐 Public Repo — Shop Data</div>
+      <div class="row3">
         <div class="field"><label for="ghOwner">Username</label><input id="ghOwner" type="text" placeholder="adilooyt" autocomplete="off" spellcheck="false"/></div>
-        <div class="field"><label for="ghRepo">Repository</label><input id="ghRepo" type="text" placeholder="goorev" autocomplete="off" spellcheck="false"/></div>
+        <div class="field"><label for="ghRepo">Repository (public)</label><input id="ghRepo" type="text" placeholder="goorev" autocomplete="off" spellcheck="false"/></div>
         <div class="field"><label for="ghBranch">Branch</label><input id="ghBranch" type="text" placeholder="main" autocomplete="off" spellcheck="false"/></div>
+      </div>
+      <div class="section-title" style="margin-top:8px">🔒 Private Repo — Payment Data</div>
+      <div class="row3">
+        <div class="field"><label for="ghPrivateRepo">Private Repository</label><input id="ghPrivateRepo" type="text" placeholder="goorev-payments" autocomplete="off" spellcheck="false"/></div>
+        <div class="field"><label for="ghPrivateBranch">Branch</label><input id="ghPrivateBranch" type="text" placeholder="main" autocomplete="off" spellcheck="false"/></div>
         <div class="field"><label for="ghToken">Personal Access Token</label><input id="ghToken" type="password" placeholder="ghp_••••••••••••" autocomplete="off" spellcheck="false"/></div>
       </div>
 
@@ -601,13 +605,15 @@
   function loadSettings () {
     try {
       const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-      el('ghOwner').value     = s.owner        || '';
-      el('ghRepo').value      = s.repo         || '';
-      el('ghBranch').value    = s.branch       || 'main';
-      el('ghToken').value     = s.token        || '';
-      el('currency').value    = s.currency     || '₹';
-      el('nfcPrice').value    = s.nfcPrice     || '';
-      el('scannerPrice').value= s.scannerPrice || '';
+      el('ghOwner').value        = s.owner        || '';
+      el('ghRepo').value         = s.repo         || '';
+      el('ghBranch').value       = s.branch       || 'main';
+      el('ghPrivateRepo').value  = s.privateRepo  || '';
+      el('ghPrivateBranch').value= s.privateBranch|| 'main';
+      el('ghToken').value        = s.token        || '';
+      el('currency').value       = s.currency     || '₹';
+      el('nfcPrice').value       = s.nfcPrice     || '';
+      el('scannerPrice').value   = s.scannerPrice || '';
     } catch (_) {}
   }
 
@@ -619,13 +625,15 @@
 
   function getSettings () {
     return {
-      owner:        el('ghOwner').value.trim(),
-      repo:         el('ghRepo').value.trim(),
-      branch:       el('ghBranch').value.trim()     || 'main',
-      token:        el('ghToken').value.trim(),
-      currency:     el('currency').value.trim()     || '₹',
-      nfcPrice:     parseFloat(el('nfcPrice').value)     || 0,
-      scannerPrice: parseFloat(el('scannerPrice').value)  || 0,
+      owner:         el('ghOwner').value.trim(),
+      repo:          el('ghRepo').value.trim(),
+      branch:        el('ghBranch').value.trim()          || 'main',
+      privateRepo:   el('ghPrivateRepo').value.trim(),
+      privateBranch: el('ghPrivateBranch').value.trim()  || 'main',
+      token:         el('ghToken').value.trim(),
+      currency:      el('currency').value.trim()          || '₹',
+      nfcPrice:      parseFloat(el('nfcPrice').value)     || 0,
+      scannerPrice:  parseFloat(el('scannerPrice').value) || 0,
     };
   }
 
@@ -698,18 +706,20 @@
     btn.textContent = '⏳ Loading…';
 
     try {
-      // 1. Load shops from index.html
+      // 1. Load shops from PUBLIC repo (index.html)
       const indexData = await ghFetch(`/repos/${owner}/${repo}/contents/index.html?ref=${branch}`);
       if (!indexData) throw new Error('index.html not found in repo.');
       const html = b64ToUtf8(indexData.content);
       shops = parseShopLookup(html);
 
-      // 2. Load payments.json (OK if 404 — means first time)
-      const pmtData = await ghFetch(`/repos/${owner}/${repo}/contents/payments.json?ref=${branch}`);
+      // 2. Load payments.json from PRIVATE repo
+      const { privateRepo, privateBranch } = getSettings();
+      if (!privateRepo) throw new Error('Please set your private repository name (e.g. goorev-payments).');
+      const pmtData = await ghFetch(`/repos/${owner}/${privateRepo}/contents/payments.json?ref=${privateBranch}`);
       if (pmtData) {
         paymentsSha = pmtData.sha;
         const parsed = JSON.parse(b64ToUtf8(pmtData.content));
-        payments = parsed.payments || parsed; // support both {payments:{}} and flat
+        payments = parsed.payments || parsed;
       } else {
         paymentsSha = '';
         payments = {};
@@ -747,8 +757,9 @@
      Save to GitHub
   ──────────────────────────────── */
   window.saveToGitHub = async function () {
-    const { owner, repo, branch, token } = getSettings();
+    const { owner, privateRepo, privateBranch, token } = getSettings();
     if (!token) { toast('No GitHub token.', 'err'); return; }
+    if (!privateRepo) { toast('Set your private repo name first.', 'err'); return; }
 
     const btn = el('saveBtn');
     btn.disabled = true;
@@ -761,11 +772,11 @@
       const body = {
         message: 'payments: update via payment tracker',
         content: encoded,
-        branch
+        branch: privateBranch
       };
       if (paymentsSha) body.sha = paymentsSha;
 
-      const res = await ghFetch(`/repos/${owner}/${repo}/contents/payments.json`, {
+      const res = await ghFetch(`/repos/${owner}/${privateRepo}/contents/payments.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -774,7 +785,7 @@
       paymentsSha = res.content.sha;
       dirty = false;
       btn.classList.remove('visible');
-      toast('Saved to GitHub ✓', 'ok');
+      toast('Saved to private repo ✓', 'ok');
     } catch (e) {
       toast(e.message, 'err');
     } finally {
