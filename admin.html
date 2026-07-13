@@ -396,9 +396,76 @@
         gap: 8px !important;
       }
     }
+
+    /* ── Skeleton Loading ── */
+    .skeleton-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .skeleton-line { height: 12px; background: linear-gradient(90deg, var(--surface3) 25%, rgba(255,255,255,.06) 50%, var(--surface3) 75%); background-size: 200% 100%; border-radius: 6px; animation: shimmer 1.5s infinite; margin-bottom: 8px; }
+    .skeleton-line:last-child { margin-bottom: 0; }
+    .skeleton-line.w60 { width: 60%; } .skeleton-line.w80 { width: 80%; } .skeleton-line.w40 { width: 40%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Offline Banner ── */
+    .offline-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 300; background: linear-gradient(90deg,#dc2626,#ef4444); color: #fff; text-align: center; padding: 8px 16px; font-size: .82rem; font-weight: 600; display: none; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(239,68,68,.3); }
+    .offline-banner.visible { display: flex; }
+    .offline-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse-dot 1.5s infinite; }
+    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+    .online-banner { background: linear-gradient(90deg,#16a34a,#22c55e) !important; }
+
+    /* ── Pull to Refresh ── */
+    .ptr-indicator { text-align: center; overflow: hidden; height: 0; transition: height .25s ease; color: var(--muted2); font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .ptr-indicator.pulling { height: 44px; }
+    .ptr-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Delete Confirm Modal ── */
+    .delete-overlay { position: fixed; inset: 0; z-index: 250; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+    .delete-overlay.open { display: flex; }
+    .delete-card { background: var(--surface); border: 1px solid rgba(239,68,68,.25); border-radius: 18px; padding: 24px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: slideUp .2s ease; }
+    .delete-icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .delete-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .delete-card p { font-size: .84rem; color: var(--muted2); margin-bottom: 18px; line-height: 1.4; }
+    .delete-card .shop-name-highlight { color: var(--red); font-weight: 700; }
+    .delete-actions { display: flex; gap: 10px; }
+    .delete-actions button { flex: 1; padding: 10px; }
+    .btn-delete-confirm { background: linear-gradient(135deg,#ef4444,#dc2626); color: #fff; }
+    .btn-delete-confirm:hover { box-shadow: 0 4px 14px rgba(239,68,68,.35); }
+
+    /* ── Sort Dropdown ── */
+    .sort-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .sort-bar label { margin: 0; font-size: .72rem; color: var(--muted); white-space: nowrap; }
+    .sort-select { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: inherit; font-size: .78rem; padding: 5px 10px; cursor: pointer; outline: none; }
+    .sort-select:focus { border-color: var(--blue); }
+
+    /* ── Copy Link Button ── */
+    .btn-copy-link { position: relative; }
+    .copy-tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); font-size: .68rem; padding: 3px 8px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .2s; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+    .copy-tooltip.show { opacity: 1; }
+
+    /* ── Export CSV Button ── */
+    .btn-export { background: var(--surface2); color: var(--muted2); border: 1px solid var(--border2); font-size: .78rem; padding: 5px 13px; border-radius: 8px; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .btn-export:hover { background: var(--surface3); color: var(--text); }
   </style>
 </head>
 <body>
+
+<!-- ══ Offline Banner ══ -->
+<div class="offline-banner" id="offlineBanner"><span class="offline-dot"></span> You're offline — changes can't be saved</div>
+
+<!-- ══ Pull to Refresh Indicator ══ -->
+<div class="ptr-indicator" id="ptrIndicator"><span class="ptr-spinner"></span> Release to refresh…</div>
+
+<!-- ══ Delete Confirmation Modal ══ -->
+<div class="delete-overlay" id="deleteOverlay">
+  <div class="delete-card">
+    <div class="delete-icon">🗑️</div>
+    <h3>Delete Shop?</h3>
+    <p>Are you sure you want to delete <span class="shop-name-highlight" id="deleteShopName">—</span>? This cannot be undone.</p>
+    <div class="delete-actions">
+      <button class="btn-delete-confirm" id="deleteConfirmBtn">Yes, Delete</button>
+      <button class="btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ Login Screen Overlay ══ -->
 <div class="login-overlay" id="loginOverlay">
@@ -509,9 +576,19 @@
         <svg class="adm-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="adm-searchInput" type="text" placeholder="Search by name, ID or link…" autocomplete="off" spellcheck="false" oninput="admFilterShops()"/>
       </div>
-      <div class="search-count" id="adm-searchCount"></div>
+      <div class="sort-bar" id="adm-sortBar" style="display:none">
+        <label>Sort:</label>
+        <select class="sort-select" id="adm-sortSelect" onchange="admSortAndRender()">
+          <option value="id-asc">ID ↑</option>
+          <option value="id-desc">ID ↓</option>
+          <option value="name-asc">Name A→Z</option>
+          <option value="name-desc">Name Z→A</option>
+        </select>
+        <div style="flex:1"></div>
+        <span class="search-count" id="adm-searchCount"></span>
+      </div>
 
-      <div id="adm-shopList"><p class="empty">Unlocked. Please wait for data to load.</p></div>
+      <div id="adm-shopList"><div class="skeleton-item"><div class="skeleton-line w80"></div><div class="skeleton-line w60"></div><div class="skeleton-line w40"></div></div><div class="skeleton-item" style="margin-top:9px"><div class="skeleton-line w60"></div><div class="skeleton-line w80"></div><div class="skeleton-line w40"></div></div><div class="skeleton-item" style="margin-top:9px"><div class="skeleton-line w80"></div><div class="skeleton-line w40"></div><div class="skeleton-line w60"></div></div></div>
     </div>
   </div>
 </div>
@@ -655,6 +732,7 @@
         <input id="pmt-searchInput" type="text" placeholder="Search shop…" autocomplete="off" spellcheck="false" oninput="pmtRenderCards()"/>
       </div>
       <span class="count-badge" id="pmt-countBadge">0 shops</span>
+      <button class="btn-export" onclick="pmtExportCSV()">📥 Export CSV</button>
     </div>
 
     <div class="cards-grid" id="pmt-cardsGrid">
@@ -936,11 +1014,25 @@
     return html.replace(/const SHOP_LOOKUP\s*=\s*\{[\s\S]*?\};/, serializeShopLookup(newLookup));
   }
 
+  function admGetSortedKeys () {
+    const keys = Object.keys(admShops);
+    const sort = el('adm-sortSelect').value;
+    const numId = id => parseInt((id.match(/\d+/)||[0])[0]) || 0;
+    switch (sort) {
+      case 'id-asc':    return keys.sort((a,b) => numId(a) - numId(b));
+      case 'id-desc':   return keys.sort((a,b) => numId(b) - numId(a));
+      case 'name-asc':  return keys.sort((a,b) => (admShops[a].shop||'').localeCompare(admShops[b].shop||''));
+      case 'name-desc': return keys.sort((a,b) => (admShops[b].shop||'').localeCompare(admShops[a].shop||''));
+      default: return keys;
+    }
+  }
+
   function admRenderShops () {
     const list = el('adm-shopList');
-    const keys = Object.keys(admShops);
-    if (!keys.length) { list.innerHTML='<p class="empty">No shops loaded yet.</p>'; el('adm-searchWrap').style.display='none'; el('adm-searchCount').textContent=''; return; }
+    const keys = admGetSortedKeys();
+    if (!keys.length) { list.innerHTML='<p class="empty">No shops loaded yet.</p>'; el('adm-searchWrap').style.display='none'; el('adm-sortBar').style.display='none'; el('adm-searchCount').textContent=''; return; }
     el('adm-searchWrap').style.display='';
+    el('adm-sortBar').style.display='';
     el('adm-searchInput').value='';
     el('adm-searchCount').textContent=`${keys.length} shop${keys.length!==1?'s':''}`;
     list.innerHTML = keys.map(id => {
@@ -957,6 +1049,7 @@
             <div class="shop-link">${escHtml(link)}</div>
           </div>
           <div class="shop-actions">
+            <button class="btn-ghost btn-copy-link" style="font-size:.76rem;padding:5px 9px;" onclick="admCopyLink('${escHtml(id)}',this)">📋 Link<span class="copy-tooltip">Copied!</span></button>
             <button class="btn-ghost" style="font-size:.76rem;padding:5px 9px;" onclick="admTestShop('${escHtml(id)}')">Test</button>
             <button class="btn-ghost" style="font-size:.76rem;padding:5px 9px;" onclick="admEditShop('${escHtml(id)}')">Edit</button>
             <button class="btn-danger" onclick="admDeleteShop('${escHtml(id)}')">Delete</button>
@@ -964,6 +1057,18 @@
         </div>`;
     }).join('');
   }
+
+  window.admSortAndRender = function () { admRenderShops(); };
+
+  window.admCopyLink = function (id, btn) {
+    const { owner, repo } = getSettings();
+    const url = `https://${owner}.github.io/${repo}/index.html?id=${id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const tip = btn.querySelector('.copy-tooltip');
+      tip.classList.add('show');
+      setTimeout(() => tip.classList.remove('show'), 1500);
+    }).catch(() => toast('Copy failed — try manually.','err'));
+  };
 
   window.admTestShop = function (id) {
     const { owner, repo } = getSettings();
@@ -1093,23 +1198,31 @@
     toast(eid?'Shop & Payment info updated.':'Shop & Payment info added.','ok');
   };
 
+  let _deleteTargetId = null;
   window.admDeleteShop = function (id) {
-    if(!confirm(`Delete "${id}" (${admShops[id]?.shop})? Cannot be undone.`))return;
+    _deleteTargetId = id;
+    const s = admShops[id];
+    el('deleteShopName').textContent = `${id} — ${s?.shop || 'Unknown'}`;
+    el('deleteOverlay').classList.add('open');
+  };
+
+  window.closeDeleteModal = function () {
+    el('deleteOverlay').classList.remove('open');
+    _deleteTargetId = null;
+  };
+
+  el('deleteConfirmBtn').addEventListener('click', function () {
+    if (!_deleteTargetId) return;
+    const id = _deleteTargetId;
     delete admShops[id];
-    admDirty=true;
-    
-    // Optionally delete payments entry
-    if (pmtPayments[id]) {
-      delete pmtPayments[id];
-      pmtDirty=true;
-    }
-    
+    admDirty = true;
+    if (pmtPayments[id]) { delete pmtPayments[id]; pmtDirty = true; }
     admRenderShops();
     pmtRenderAll();
-    
     el('hub-saveBtn').classList.add('visible');
-    toast(`Deleted ${id}.`,'ok');
-  };
+    toast(`Deleted ${id}.`, 'ok');
+    closeDeleteModal();
+  });
 
   /* ════════════════════════════
      PAYMENT TRACKER
@@ -1291,16 +1404,79 @@
     }
   };
 
+  /* ── Export CSV ── */
+  window.pmtExportCSV = function () {
+    const keys = Object.keys(admShops);
+    if (!keys.length) { toast('No data to export.','err'); return; }
+    const { bundlePrice, currency } = getSettings();
+    const rows = [['Shop ID','Shop Name','Category','Bundles','Amount','Status','Paid Date','Note']];
+    keys.forEach(id => {
+      const s = admShops[id] || {};
+      const p = pmtPayments[id] || {};
+      const amt = (p.customAmount && p.customAmount > 0) ? p.customAmount : (p.qty||1) * bundlePrice;
+      rows.push([id, s.shop||'', s.category||'', p.qty||1, amt, p.paid?'Paid':'Unpaid', p.paidDate||'', p.note||'']);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `adiloo-payments-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('CSV exported!', 'ok');
+  };
+
   /* ── Keyboard & Escape listeners ── */
   document.addEventListener('keydown', e => { 
     if (e.key === 'Escape') {
       el('pmt-modalOverlay').classList.remove('open');
       el('adm-modalOverlay').classList.remove('open');
+      closeDeleteModal();
     }
   });
   
   window.addEventListener('beforeunload', e => { 
     if (admDirty || pmtDirty) { e.preventDefault(); e.returnValue = ''; } 
+  });
+
+  /* ── Offline / Online Detection ── */
+  function updateOnlineStatus () {
+    const banner = el('offlineBanner');
+    if (!navigator.onLine) {
+      banner.classList.add('visible');
+      banner.classList.remove('online-banner');
+      banner.innerHTML = '<span class="offline-dot"></span> You\'re offline — changes can\'t be saved';
+    } else {
+      if (banner.classList.contains('visible')) {
+        banner.classList.add('online-banner');
+        banner.innerHTML = '✓ Back online';
+        setTimeout(() => { banner.classList.remove('visible','online-banner'); }, 2500);
+      }
+    }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+
+  /* ── Pull to Refresh (mobile touch) ── */
+  let _ptrStartY = 0, _ptrActive = false;
+  document.addEventListener('touchstart', e => {
+    if (window.scrollY === 0 && !el('loginOverlay').classList.contains('hidden')) return;
+    if (window.scrollY === 0) { _ptrStartY = e.touches[0].clientY; _ptrActive = true; }
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!_ptrActive) return;
+    const diff = e.touches[0].clientY - _ptrStartY;
+    if (diff > 60 && window.scrollY === 0) { el('ptrIndicator').classList.add('pulling'); }
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    if (el('ptrIndicator').classList.contains('pulling')) {
+      el('ptrIndicator').classList.remove('pulling');
+      if (typeof hubLoadAll === 'function') {
+        hubLoadAll().then(() => toast('Data refreshed!','ok')).catch(e => toast(e.message,'err'));
+      }
+    }
+    _ptrActive = false;
   });
 
   /* ── Startup ── */
