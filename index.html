@@ -269,22 +269,19 @@
       // CONFIG
       // =========================
       const ANALYTICS_WEBHOOK = "";
+      const SECURE_PROXY_URL = "https://script.google.com/macros/s/AKfycbz445uQi0H0Wu7VjiCuOnKOFMss7NB3gmaHMD-OuzySyDjYXEyADItH4wtTKFGFGkLJ/exec"; // Optional: Google Apps Script Web App URL to securely generate reviews without leaking API keys
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
       const ALLOWED_REVIEW_HOSTS = new Set(["search.google.com", "www.google.com", "google.com", "maps.google.com", "maps.app.goo.gl", "g.page"]);
 
-      const GLOBAL_GEMINI_KEYS = [
-        "AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0",
-        "AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo",
-        "AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"
-      ];
+      const GLOBAL_GEMINI_KEYS = [];
 
       // Optional ID lookup map. Fill in real shop names and Google Review links.
       // ID lookup is preferred; query link is only used when no known ID is provided.
       const SHOP_LOOKUP = {
-        "SP1": { shop: "Aligarh Muslim University", link: "https://search.google.com/local/writereview?placeid=ChIJUUu8vOWkdDkRmOnQMzdx2to", category: "University", note: "Historic university established in 1875, known for academic excellence and beautiful campus.", geminiKey: ["AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0","AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo","AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"] },
-        "SP2": { shop: "Satyadeo Degree College", link: "https://search.google.com/local/writereview?placeid=ChIJ4Q0yFyUCkjkRh5aDcWR6U9I", category: "College", note: "Established educational institution offering diverse academic programs.", geminiKey: ["AIzaSyC168RX8LIhKgrmBKuZ_yqAv93Uf_THnu0","AIzaSyAE4ehYxXnFVFSpoYvw65G2LK6QaJfYVWo","AIzaSyCl_HBWuZFrxlaYkwz31sqJbbiph_Uv6wg"] },
+        "SP1": { shop: "Aligarh Muslim University", link: "https://search.google.com/local/writereview?placeid=ChIJUUu8vOWkdDkRmOnQMzdx2to", category: "University", note: "Historic university established in 1875, known for academic excellence and beautiful campus." },
+        "SP2": { shop: "Satyadeo Degree College", link: "https://search.google.com/local/writereview?placeid=ChIJ4Q0yFyUCkjkRh5aDcWR6U9I", category: "College", note: "Established educational institution offering diverse academic programs." },
         "SP3": { shop: "Ghazipur City", link: "https://search.google.com/local/writereview?placeid=ChIJEW_AU5z_kTkRQKKvunWmhok", category: "city", note: "place, district," },
         "SP4": { shop: "Shop 4", link: "https://search.google.com/local/writereview?placeid=ChIJv98LNXj_kTkRhjVQwFEkp8Q" },
         "SP5": { shop: "Shop 5", link: "https://search.google.com/local/writereview?placeid=PLACE_ID_SP5" },
@@ -590,6 +587,34 @@
 
       // Gemini API Review Generator (multi-key fallback)
       async function generateGeminiReview(apiKeys, shop, catg, shopNote) {
+        if (SECURE_PROXY_URL) {
+          try {
+            const url = new URL(SECURE_PROXY_URL);
+            url.searchParams.append("shop", shop);
+            if (catg) url.searchParams.append("category", catg);
+            if (shopNote) url.searchParams.append("note", shopNote);
+            url.searchParams.append("_", Date.now().toString()); // Cache-buster
+
+            const res = await fetch(url.toString(), {
+              method: 'GET',
+              mode: 'cors'
+            });
+            if (res.ok) {
+              const text = await res.text();
+              if (text && text.trim() && !text.startsWith("Error:") && !text.startsWith("Proxy Server Error:")) {
+                return text.trim();
+              } else if (text) {
+                console.warn("Proxy returned error:", text);
+              }
+            } else {
+              console.warn(`Proxy request failed with status: ${res.status}`);
+            }
+          } catch (err) {
+            console.warn("Failed to generate review via secure proxy:", err);
+          }
+          console.log("Attempting direct key fallback...");
+        }
+
         let context = `Place: ${shop}`;
         if (catg) context += `\nType: ${catg}`;
         if (shopNote) context += `\nAbout: ${shopNote}`;
@@ -622,7 +647,7 @@ Rules:
         const shuffled = [...apiKeys].sort(() => Math.random() - 0.5);
         for (let i = 0; i < shuffled.length; i++) {
           try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${shuffled[i]}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${shuffled[i]}`;
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
