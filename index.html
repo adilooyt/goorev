@@ -4,7 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Redirecting to Google Reviews…</title>
+  <meta name="description" content="Leave a quick Google review — tap, review, done. Powered by Adiloo NFC cards." />
   <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -268,8 +272,7 @@
       // =========================
       // CONFIG
       // =========================
-      const ANALYTICS_WEBHOOK = "";
-      const SECURE_PROXY_URL = "https://script.google.com/macros/s/AKfycbz445uQi0H0Wu7VjiCuOnKOFMss7NB3gmaHMD-OuzySyDjYXEyADItH4wtTKFGFGkLJ/exec"; // Optional: Google Apps Script Web App URL to securely generate reviews without leaking API keys
+      const SECURE_PROXY_URL = "https://script.google.com/macros/s/AKfycbz445uQi0H0Wu7VjiCuOnKOFMss7NB3gmaHMD-OuzySyDjYXEyADItH4wtTKFGFGkLJ/exec"; // Google Apps Script Web App URL to securely generate reviews without leaking API keys
 
       const DEFAULT_SHOP_NAME = "our shop";
       const DEFAULT_REVIEW_URL = "https://www.google.com/maps";
@@ -769,6 +772,9 @@ Rules:
         } catch (err) {
           console.error("AI generation failed, using local fallback:", err);
           generatedReviewArea.value = generateLocalReview(shopName, category, note);
+          // Show subtle fallback indicator to user
+          const label = document.querySelector('.ai-label');
+          if (label) label.textContent = 'Tap to edit before copying (auto-suggested):';
         } finally {
           aiLoading.style.display = "none";
           aiReviewBox.style.display = "block";
@@ -784,9 +790,9 @@ Rules:
         autoGenerateReview();
       });
 
-      // Skip button tracking
+      // Skip button tracking — use beacon transport so event fires before navigation
       document.getElementById("skipToReviewBtn").addEventListener("click", () => {
-        trackEvent('skip_to_review', { shop_id: id || 'unknown', shop_name: shopName });
+        trackEvent('skip_to_review', { shop_id: id || 'unknown', shop_name: shopName, transport_type: 'beacon' });
       });
 
       // Copy & Redirect

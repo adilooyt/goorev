@@ -1,2 +1,11 @@
 # macOS
 .DS_Store
+
+# Admin dashboard — local-only, NEVER deploy to GitHub Pages
+admin.html
+
+# Generated QR code images (large binary files)
+output/
+assembled/
+100/
+20/

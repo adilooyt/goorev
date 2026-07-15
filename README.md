@@ -2,7 +2,7 @@
 
 A lightweight, static NFC/QR redirect system for Google Reviews — hosted on GitHub Pages with zero backend and zero running cost.
 
-When a customer taps an NFC card or scans a QR code, they see a branded 5-second countdown page that smoothly redirects them to the correct Google Reviews form. Anonymous analytics are fired in the background via a Google Apps Script webhook.
+When a customer taps an NFC card or scans a QR code, they see a branded review page with an AI-generated review suggestion. They can copy the review and open Google Reviews with one tap. Anonymous analytics are tracked via Google Analytics 4.
 
 **Live demo:**
 ```
@@ -17,11 +17,12 @@ https://adilooyt.github.io/goorev/?id=SP1
 NFC tag / QR code
        │
        ▼
-flash-redirect-analytics.html?id=SP1
+index.html?id=SP1
        │
        ├─ Resolves shop name + review URL from SHOP_LOOKUP
-       ├─ Shows branded countdown UI (5 seconds)
-       ├─ Fires anonymous analytics event
+       ├─ Auto-generates an AI review (via secure proxy or local fallback)
+       ├─ User copies review + redirects to Google Reviews
+       ├─ Fires GA4 analytics events
        │
        ▼
 Google Reviews page (specific to that shop)
@@ -45,7 +46,7 @@ goorev/
 
 ## Shop management
 
-Shops are defined in the `SHOP_LOOKUP` object inside `flash-redirect-analytics.html`:
+Shops are defined in the `SHOP_LOOKUP` object inside `index.html`:
 
 ```js
 const SHOP_LOOKUP = {
@@ -66,7 +67,7 @@ Use `admin.html` locally:
 4. Add, edit, or delete entries using the form
 5. Click **Publish changes to GitHub** — the file is committed automatically
 
-Alternatively, edit `flash-redirect-analytics.html` directly on GitHub mobile.
+Alternatively, edit `index.html` directly on GitHub mobile.
 
 ---
 
@@ -103,20 +104,16 @@ Replace `SP1` with the correct Shop ID for each location.
 
 ## Analytics
 
-Analytics events are sent via `navigator.sendBeacon` (with a `fetch` fallback) to a Google Apps Script endpoint. No client secrets are used. The payload is:
+Analytics events are tracked via Google Analytics 4 (`gtag.js`) with tracking ID `G-132Q7QN63G`. The following events are fired:
 
-```json
-{
-  "timestamp": "2026-07-10T00:00:00.000Z",
-  "event": "shop_redirect",
-  "shopId": "SP1",
-  "resolution": "id_lookup",
-  "source": "auto",
-  "targetHost": "search.google.com"
-}
-```
+| Event | When |
+|-------|------|
+| `shop_page_view` | Page loads with a shop context |
+| `review_copied` | User copies the AI-generated review |
+| `review_refreshed` | User regenerates the review |
+| `skip_to_review` | User skips AI and goes directly to Google Reviews |
 
-To disable analytics, set `ANALYTICS_WEBHOOK = ""` in the config section of `flash-redirect-analytics.html`.
+No personally identifiable information is collected.
 
 ---
 
@@ -133,6 +130,6 @@ To disable analytics, set `ANALYTICS_WEBHOOK = ""` in the config section of `fla
 
 - The `?link=` parameter is validated against a strict Google domain allowlist before use
 - Non-HTTPS URLs are always rejected
-- The CSP header blocks all external scripts, frames, and form actions
 - `admin.html` is local-only and never pushed to the repository
 - The GitHub token used by `admin.html` is stored in `localStorage` of your local browser only
+- AI review generation uses a secure server-side proxy to avoid exposing API keys in client code
