@@ -446,10 +446,16 @@
 
       // Prefer controlled id-based lookup first.
       if (id && SHOP_LOOKUP[id]) {
-        shopName = SHOP_LOOKUP[id].shop || shopName;
-        reviewUrl = normalizeAllowedReviewUrl(SHOP_LOOKUP[id].link) || reviewUrl;
-        category = SHOP_LOOKUP[id].category || null;
-        note = SHOP_LOOKUP[id].note || null;
+        let target = SHOP_LOOKUP[id];
+        const visited = new Set();
+        while (target.ref && SHOP_LOOKUP[target.ref] && !visited.has(target.ref)) {
+          visited.add(target.ref);
+          target = SHOP_LOOKUP[target.ref];
+        }
+        shopName = target.shop || shopName;
+        reviewUrl = normalizeAllowedReviewUrl(target.link) || reviewUrl;
+        category = target.category || null;
+        note = target.note || null;
         resolutionSource = "id_lookup";
       } else {
         if (requestedShop) shopName = requestedShop;

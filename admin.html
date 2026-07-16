@@ -611,6 +611,10 @@
       </div>
     </div>
     <div class="field">
+      <label for="adm-ref">Alias of (Reference Shop ID) <span style="color:var(--muted);font-weight:400">(e.g. SP1 — leaves fields below inherited/disabled)</span></label>
+      <input id="adm-ref" type="text" placeholder="e.g. SP1" autocomplete="off" spellcheck="false" oninput="admToggleFieldsForRef()"/>
+    </div>
+    <div class="field">
       <label for="adm-newLink">Google Review URL</label>
       <div style="display:flex;gap:8px;">
         <input id="adm-newLink" type="text" placeholder="https://search.google.com/local/writereview?placeid=..." autocomplete="off" spellcheck="false" style="flex:1;"/>
@@ -973,6 +977,16 @@
   let admFileSha = '';
   let admDirty   = false;
 
+  function resolveShopDetails (id) {
+    const visited = new Set();
+    let current = admShops[id];
+    while (current && current.ref && !visited.has(current.ref)) {
+      visited.add(current.ref);
+      current = admShops[current.ref];
+    }
+    return current || {};
+  }
+
   function parseShopLookup (html) {
     const m = html.match(/const SHOP_LOOKUP\s*=\s*(\{[\s\S]*?\});/);
     if (!m) throw new Error('Could not find SHOP_LOOKUP in config file.');
@@ -981,9 +995,14 @@
 
   function serializeShopLookup (obj) {
     const entries = Object.entries(obj).map(([id,v]) => {
-      let parts = `shop: ${JSON.stringify(v.shop)}, link: ${JSON.stringify(v.link)}`;
-      if (v.category)   parts += `, category: ${JSON.stringify(v.category)}`;
-      if (v.note)       parts += `, note: ${JSON.stringify(v.note)}`;
+      let parts = '';
+      if (v.ref) {
+        parts = `ref: ${JSON.stringify(v.ref)}`;
+      } else {
+        parts = `shop: ${JSON.stringify(v.shop)}, link: ${JSON.stringify(v.link)}`;
+        if (v.category)   parts += `, category: ${JSON.stringify(v.category)}`;
+        if (v.note)       parts += `, note: ${JSON.stringify(v.note)}`;
+      }
       return `        ${JSON.stringify(id)}: { ${parts} }`;
     });
     return `const SHOP_LOOKUP = {\n${entries.join(',\n')}\n      };`;
@@ -1000,11 +1019,12 @@
     const keys = Object.keys(admShops);
     const sort = el('adm-sortSelect').value;
     const numId = id => parseInt((id.match(/\d+/)||[0])[0]) || 0;
+    const getShopName = id => resolveShopDetails(id).shop || '';
     switch (sort) {
       case 'id-asc':    return keys.sort((a,b) => numId(a) - numId(b));
       case 'id-desc':   return keys.sort((a,b) => numId(b) - numId(a));
-      case 'name-asc':  return keys.sort((a,b) => (admShops[a].shop||'').localeCompare(admShops[b].shop||''));
-      case 'name-desc': return keys.sort((a,b) => (admShops[b].shop||'').localeCompare(admShops[a].shop||''));
+      case 'name-asc':  return keys.sort((a,b) => getShopName(a).localeCompare(getShopName(b)));
+      case 'name-desc': return keys.sort((a,b) => getShopName(b).localeCompare(getShopName(a)));
       default: return keys;
     }
   }
@@ -1018,14 +1038,20 @@
     el('adm-searchInput').value='';
     el('adm-searchCount').textContent=`${keys.length} shop${keys.length!==1?'s':''}`;
     list.innerHTML = keys.map(id => {
-      const { shop, link, category, note } = admShops[id];
+      const item = admShops[id];
+      const resolved = resolveShopDetails(id);
+      let shop = resolved.shop || '';
+      let link = resolved.link || '';
+      let category = resolved.category || '';
+      let isAlias = !!item.ref;
       let ai = '';
       if (category) ai += ` <span class="adm-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;">${escHtml(category)}</span>`;
+      if (isAlias) ai += ` <span class="adm-tag" style="background:rgba(16,185,129,.15);color:#34d399;">Alias of ${escHtml(item.ref)}</span>`;
       return `
         <div class="shop-item" data-id="${escHtml(id)}" data-name="${escHtml(shop.toLowerCase())}" data-link="${escHtml(link.toLowerCase())}">
           <div class="shop-item-info">
             <div class="shop-id">${escHtml(id)} ${ai}</div>
-            <div class="shop-name">${escHtml(shop)}</div>
+            <div class="shop-name">${escHtml(isAlias ? `Alias: ${shop}` : shop)}</div>
             <div class="shop-link">${escHtml(link)}</div>
           </div>
           <div class="shop-actions">
@@ -1099,12 +1125,21 @@
     el('adm-searchCount').textContent = vis ? `${vis} of ${items.length} match` : 'No matches';
   };
 
+  window.admToggleFieldsForRef = function () {
+    const refVal = el('adm-ref').value.trim();
+    const hasRef = refVal.length > 0;
+    ['adm-newName', 'adm-newLink', 'adm-newCategory', 'adm-newNote'].forEach(i => {
+      el(i).disabled = hasRef;
+    });
+  };
+
   /* ── Add / Edit Shop Modal Controller ── */
   window.admOpenAddModal = function () {
     el('adm-editingId').value='';
     el('adm-modalTitleText').textContent = 'Add Shop';
-    ['adm-newId','adm-newName','adm-newLink','adm-newCategory','adm-newNote'].forEach(i=>{ el(i).value=''; });
+    ['adm-newId','adm-newName','adm-newLink','adm-newCategory','adm-newNote','adm-ref'].forEach(i=>{ el(i).value=''; });
     el('adm-newId').disabled=false;
+    admToggleFieldsForRef();
     el('adm-qty').value = 1;
     el('adm-paid').checked = false;
     admUpdateAmountDisplay();
@@ -1117,11 +1152,13 @@
     el('adm-editingId').value = id;
     el('adm-modalTitleText').textContent = 'Edit Shop: ' + id;
     el('adm-newId').value = id;
-    el('adm-newName').value = s.shop;
-    el('adm-newLink').value = s.link;
+    el('adm-ref').value = s.ref || '';
+    el('adm-newName').value = s.shop || '';
+    el('adm-newLink').value = s.link || '';
     el('adm-newCategory').value = s.category||'';
     el('adm-newNote').value = s.note||'';
     el('adm-newId').disabled = true;
+    admToggleFieldsForRef();
 
     // Prefill payment details
     const p = pmtPayments[id] || { qty: 1, paid: false };
@@ -1130,7 +1167,11 @@
     admUpdateAmountDisplay();
 
     el('adm-modalOverlay').classList.add('open');
-    el('adm-newName').focus();
+    if (s.ref) {
+      el('adm-ref').focus();
+    } else {
+      el('adm-newName').focus();
+    }
   };
 
   window.admUpdateAmountDisplay = function () {
@@ -1155,17 +1196,44 @@
   window.admSaveShop = function () {
     const eid=el('adm-editingId').value.trim(), id=el('adm-newId').value.trim().toUpperCase(), name=el('adm-newName').value.trim(), link=el('adm-newLink').value.trim();
     const catg=el('adm-newCategory').value.trim(), noteVal=el('adm-newNote').value.trim();
+    const refVal=el('adm-ref').value.trim().toUpperCase();
     
     // Integrated payment fields
     const qty = parseInt(el('adm-qty').value) || 1;
     const paid = el('adm-paid').checked;
 
-    if(!id){toast('Shop ID required.','err');return;} if(!/^[A-Z0-9_-]+$/i.test(id)){toast('Shop ID can only contain letters, numbers, hyphens and underscores.','err');return;} if(!name){toast('Shop name required.','err');return;} if(!link){toast('Google Review URL required.','err');return;}
-    try{const u=new URL(link);const ok=new Set(['search.google.com','www.google.com','google.com','maps.google.com','maps.app.goo.gl','g.page']);if(u.protocol!=='https:')throw new Error('URL must be https.');if(!ok.has(u.hostname.toLowerCase()))throw new Error('URL must be a Google domain.');}catch(e){toast(e.message,'err');return;}
+    if(!id){toast('Shop ID required.','err');return;} if(!/^[A-Z0-9_-]+$/i.test(id)){toast('Shop ID can only contain letters, numbers, hyphens and underscores.','err');return;}
+    
+    if (refVal) {
+      if (refVal === id) { toast('A shop cannot refer to itself.','err'); return; }
+      if (!admShops[refVal]) { toast(`Referenced ID "${refVal}" does not exist. Create it first.`,'err'); return; }
+      // Cycle detection
+      let current = refVal;
+      const visited = new Set([id]);
+      while (current) {
+        if (visited.has(current)) {
+          toast('Circular reference detected! This reference would cause an infinite loop.','err');
+          return;
+        }
+        visited.add(current);
+        current = admShops[current]?.ref || null;
+      }
+    } else {
+      if(!name){toast('Shop name required.','err');return;} if(!link){toast('Google Review URL required.','err');return;}
+      try{const u=new URL(link);const ok=new Set(['search.google.com','www.google.com','google.com','maps.google.com','maps.app.goo.gl','g.page']);if(u.protocol!=='https:')throw new Error('URL must be https.');if(!ok.has(u.hostname.toLowerCase()))throw new Error('URL must be a Google domain.');}catch(e){toast(e.message,'err');return;}
+    }
+    
     if(!eid&&admShops[id]){toast(`ID "${id}" already exists.`,'err');return;}
     
-    const sd={shop:name,link};
-    if(catg)sd.category=catg; if(noteVal)sd.note=noteVal;
+    const sd={};
+    if (refVal) {
+      sd.ref = refVal;
+    } else {
+      sd.shop = name;
+      sd.link = link;
+      if(catg)sd.category=catg;
+      if(noteVal)sd.note=noteVal;
+    }
     
     // Save shop definition
     admShops[id]=sd;
@@ -1195,7 +1263,9 @@
   window.admDeleteShop = function (id) {
     _deleteTargetId = id;
     const s = admShops[id];
-    el('deleteShopName').textContent = `${id} — ${s?.shop || 'Unknown'}`;
+    const resolved = resolveShopDetails(id);
+    const shopNameStr = s?.ref ? `Alias of ${s.ref} (${resolved.shop || 'Unknown'})` : (s?.shop || 'Unknown');
+    el('deleteShopName').textContent = `${id} — ${shopNameStr}`;
     el('deleteOverlay').classList.add('open');
   };
 
@@ -1261,25 +1331,30 @@
       const p=pmtPayments[id]||{};
       if(pmtFilter==='paid'&&!p.paid)return false;
       if(pmtFilter==='unpaid'&&p.paid)return false;
-      if(q&&!(id+' '+(admShops[id].shop||'')).toLowerCase().includes(q))return false;
+      const resolved = resolveShopDetails(id);
+      const shopNameStr = resolved.shop || '';
+      if(q&&!(id+' '+shopNameStr).toLowerCase().includes(q))return false;
       return true;
     });
     el('pmt-countBadge').textContent=`${filtered.length} shop${filtered.length!==1?'s':''}`;
     if(!filtered.length){grid.innerHTML='<div class="cards-empty"><div class="emoji">🔍</div><p>No matches.</p></div>';return;}
     grid.innerHTML=filtered.map(id=>{
       const s=admShops[id]||{},p=pmtPayments[id]||{},a=pmtAmt(p);
+      const resolved = resolveShopDetails(id);
       const state=p.paid?'paid':'unpaid',bc=p.paid?'badge-paid':'badge-unpaid',bt=p.paid?'✓ Paid':'✗ Unpaid';
       const pdHtml=p.paid&&p.paidDate?`<div class="paid-date">✓ Paid on ${escHtml(p.paidDate)}</div>`:'';
       const ab=p.paid
         ?`<button class="btn-mark-unpaid" onclick="pmtTogglePaid('${escHtml(id)}',false)">Mark Unpaid</button>`
         :`<button class="btn-mark-paid"   onclick="pmtTogglePaid('${escHtml(id)}',true)">Mark Paid ✓</button>`;
+      const cardShopName = s.ref ? `Alias: ${resolved.shop || '—'}` : (s.shop || '—');
+      const cardCat = resolved.category || '';
       return `
         <div class="shop-card ${state}">
           <div class="card-top">
             <div>
               <div class="card-id">${escHtml(id)}</div>
-              <div class="card-name">${escHtml(s.shop||'—')}</div>
-              <div class="card-cat">${escHtml(s.category||'')}</div>
+              <div class="card-name">${escHtml(cardShopName)}</div>
+              <div class="card-cat">${escHtml(cardCat)}</div>
             </div>
             <span class="status-badge ${bc}">${bt}</span>
           </div>
@@ -1311,7 +1386,9 @@
   window.pmtOpenModal = function (id) {
     pmtEditId=id;
     const s=admShops[id]||{},p=pmtPayments[id]||{};
-    el('pmt-modalShopName').textContent=`${id} — ${s.shop||''}`;
+    const resolved = resolveShopDetails(id);
+    const modalShopNameStr = s.ref ? `Alias of ${s.ref} (${resolved.shop || 'Unknown'})` : (s.shop || '');
+    el('pmt-modalShopName').textContent=`${id} — ${modalShopNameStr}`;
     el('pmt-mQty').value=p.qty||1; el('pmt-mCustomAmt').value=p.customAmount||0;
     el('pmt-mPaid').checked=!!p.paid; el('pmt-mPaidDate').value=p.paidDate||''; el('pmt-mNote').value=p.note||'';
     el('pmt-mPaidDateWrap').style.display=p.paid?'':'none';
@@ -1405,9 +1482,12 @@
     const rows = [['Shop ID','Shop Name','Category','Bundles','Amount','Status','Paid Date','Note']];
     keys.forEach(id => {
       const s = admShops[id] || {};
+      const resolved = resolveShopDetails(id);
+      const shopName = s.ref ? `Alias: ${resolved.shop || ''}` : (s.shop || '');
+      const category = resolved.category || '';
       const p = pmtPayments[id] || {};
       const amt = (p.customAmount && p.customAmount > 0) ? p.customAmount : (p.qty||1) * bundlePrice;
-      rows.push([id, s.shop||'', s.category||'', p.qty||1, amt, p.paid?'Paid':'Unpaid', p.paidDate||'', p.note||'']);
+      rows.push([id, shopName, category, p.qty||1, amt, p.paid?'Paid':'Unpaid', p.paidDate||'', p.note||'']);
     });
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
