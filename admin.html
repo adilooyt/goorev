@@ -1126,11 +1126,24 @@
   };
 
   window.admToggleFieldsForRef = function () {
-    const refVal = el('adm-ref').value.trim();
+    const refVal = el('adm-ref').value.trim().toUpperCase();
     const hasRef = refVal.length > 0;
     ['adm-newName', 'adm-newLink', 'adm-newCategory', 'adm-newNote'].forEach(i => {
       el(i).disabled = hasRef;
     });
+    if (hasRef && admShops[refVal]) {
+      const target = resolveShopDetails(refVal);
+      if (target) {
+        el('adm-newName').value = target.shop || '';
+        el('adm-newLink').value = target.link || '';
+        el('adm-newCategory').value = target.category || '';
+        el('adm-newNote').value = target.note || '';
+      }
+    } else if (hasRef) {
+      ['adm-newName', 'adm-newLink', 'adm-newCategory', 'adm-newNote'].forEach(i => {
+        el(i).value = '';
+      });
+    }
   };
 
   /* ── Add / Edit Shop Modal Controller ── */
