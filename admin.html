@@ -1043,11 +1043,42 @@
   window.admCopyLink = function (id, btn) {
     const { owner, repo } = getSettings();
     const url = `https://${owner}.github.io/${repo}/?id=${id}`;
-    navigator.clipboard.writeText(url).then(() => {
+
+    function showTooltip() {
       const tip = btn.querySelector('.copy-tooltip');
-      tip.classList.add('show');
-      setTimeout(() => tip.classList.remove('show'), 1500);
-    }).catch(() => toast('Copy failed — try manually.','err'));
+      if (tip) {
+        tip.classList.add('show');
+        setTimeout(() => tip.classList.remove('show'), 1500);
+      }
+    }
+
+    function fallbackCopy(text) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (success) {
+          showTooltip();
+        } else {
+          toast('Copy failed — try manually.', 'err');
+        }
+      } catch (err) {
+        toast('Copy failed — try manually.', 'err');
+      }
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(showTooltip)
+        .catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
   };
 
   window.admTestShop = function (id) {
