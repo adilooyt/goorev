@@ -35,12 +35,12 @@ Google Reviews page (specific to that shop)
 ```
 goorev/
 ├── index.html       # Main redirect page (the whole app lives here)
-├── admin.html       # Local-only shop manager (gitignored)
+├── admin.html       # Shop manager (accessible directly or deployed to Pages)
 ├── .gitignore
 └── README.md
 ```
 
-> `admin.html` is excluded from the repo via `.gitignore`. It is a local tool only and should never be deployed.
+> `admin.html` is tracked in the repository and can be opened locally or via your public GitHub Pages site.
 
 ---
 
@@ -130,6 +130,5 @@ No personally identifiable information is collected.
 
 - The `?link=` parameter is validated against a strict Google domain allowlist before use
 - Non-HTTPS URLs are always rejected
-- `admin.html` is local-only and never pushed to the repository
-- The GitHub token used by `admin.html` is stored in `localStorage` of your local browser only
+- `admin.html` is hosted in the repository; the GitHub token used by it is stored strictly in the `localStorage` of your local browser and is never exposed or hardcoded.
 - AI review generation uses a secure server-side proxy to avoid exposing API keys in client code
