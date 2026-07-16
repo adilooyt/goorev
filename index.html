@@ -440,10 +440,7 @@
       let reviewUrl = DEFAULT_REVIEW_URL;
       let resolutionSource = "default";
 
-      let themeColor = null;
-      let logo = null;
-      let customTags = null;
-      let geminiApiKeys = null; // can be array of 3 keys for fallback
+      let geminiApiKeys = GLOBAL_GEMINI_KEYS;
       let category = null;
       let note = null;
 
@@ -451,16 +448,6 @@
       if (id && SHOP_LOOKUP[id]) {
         shopName = SHOP_LOOKUP[id].shop || shopName;
         reviewUrl = normalizeAllowedReviewUrl(SHOP_LOOKUP[id].link) || reviewUrl;
-        logo = SHOP_LOOKUP[id].logo || null;
-        themeColor = SHOP_LOOKUP[id].themeColor || null;
-        customTags = SHOP_LOOKUP[id].tags || null;
-        // Support a single key (string) or an array of up to 3 keys for fallback
-        const rawKey = SHOP_LOOKUP[id].geminiKey || null;
-        if (rawKey) {
-          geminiApiKeys = Array.isArray(rawKey) ? rawKey.filter(Boolean) : [rawKey];
-        } else {
-          geminiApiKeys = GLOBAL_GEMINI_KEYS;
-        }
         category = SHOP_LOOKUP[id].category || null;
         note = SHOP_LOOKUP[id].note || null;
         resolutionSource = "id_lookup";
@@ -479,24 +466,10 @@
       // UI
       // =========================
       const igLink = document.getElementById("igLink");
-      const logoContainer = document.getElementById("logoContainer");
-      const shopLogo = document.getElementById("shopLogo");
 
       const shopNameSpan = document.getElementById("shopNameSpan");
       if (shopNameSpan) shopNameSpan.textContent = shopName;
 
-      // Apply dynamic branding
-      if (logo) {
-        shopLogo.src = logo;
-        logoContainer.style.display = "block";
-      }
-      if (themeColor) {
-        document.documentElement.style.setProperty('--accent', themeColor);
-        document.documentElement.style.setProperty('--accent2', themeColor);
-        document.documentElement.style.setProperty('--btn', themeColor);
-        document.documentElement.style.setProperty('--btn-sec', themeColor);
-        document.documentElement.style.setProperty('--btnh', themeColor);
-      }
 
       // =========================
       // ANALYTICS — GA4
@@ -522,65 +495,368 @@
       function generateLocalReview(shop, catg, shopNote) {
         const useHinglish = Math.random() < 0.4;
 
+        let catKey = (catg || "").toLowerCase().trim();
+
+        // Normalize categories for better matching and fallback
+        if (catKey.includes("university")) catKey = "university";
+        else if (catKey.includes("college") || catKey.includes("school")) catKey = "college";
+        else if (catKey.includes("restaurant") || catKey.includes("dhaba") || catKey.includes("food") || catKey.includes("eatery")) catKey = "restaurant";
+        else if (catKey.includes("cafe") || catKey.includes("coffee") || catKey.includes("tea")) catKey = "cafe";
+        else if (catKey.includes("hotel") || catKey.includes("resort") || catKey.includes("stay")) catKey = "hotel";
+        else if (catKey.includes("lodge")) catKey = "lodge";
+        else if (catKey.includes("mobile repair") || catKey.includes("mobile repairing")) catKey = "mobile repair shop";
+        else if (catKey.includes("mobile")) catKey = "mobile shop";
+        else if (catKey.includes("clothing") || catKey.includes("boutique") || catKey.includes("garment") || catKey.includes("cloth") || catKey.includes("wear")) catKey = "clothing shop";
+        else if (catKey.includes("mall")) catKey = "mall";
+        else if (catKey.includes("hospital") || catKey.includes("clinic") || catKey.includes("doctor") || catKey.includes("medical center") || catKey.includes("nursing home")) catKey = "hospital";
+        else if (catKey.includes("pharmacy") || catKey.includes("medical store") || catKey.includes("chemist") || catKey.includes("drugstore")) catKey = "pharmacy";
+        else if (catKey.includes("barber") || catKey.includes("salon") || catKey.includes("parlour") || catKey.includes("spa") || catKey.includes("hair")) catKey = "barber";
+        else if (catKey.includes("gym") || catKey.includes("fitness") || catKey.includes("workout")) catKey = "gym";
+        else if (catKey.includes("bakery") || catKey.includes("cake") || catKey.includes("sweet")) catKey = "bakery";
+        else if (catKey.includes("grocery") || catKey.includes("supermarket") || catKey.includes("kirana") || catKey.includes("general store")) catKey = "grocery";
+        else if (catKey.includes("mechanic") || catKey.includes("car wash") || catKey.includes("detailing") || catKey.includes("garage") || catKey.includes("auto repair") || catKey.includes("puncture") || catKey.includes("tyre")) catKey = "auto repair";
+        else if (catKey.includes("dentist") || catKey.includes("dental") || catKey.includes("tooth")) catKey = "dentist";
+        else if (catKey.includes("spa") || catKey.includes("massage") || catKey.includes("wellness") || catKey.includes("yoga")) catKey = "spa";
+        else if (catKey.includes("vet") || catKey.includes("veterinary") || catKey.includes("pet") || catKey.includes("dog") || catKey.includes("animal")) catKey = "pet care";
+        else if (catKey.includes("computer repair") || catKey.includes("laptop repair") || catKey.includes("cctv") || catKey.includes("electronics")) catKey = "electronics";
+        else if (catKey.includes("optician") || catKey.includes("eyewear") || catKey.includes("specs") || catKey.includes("optical") || catKey.includes("lens")) catKey = "optician";
+        else if (catKey.includes("pathology") || catKey.includes("diagnostic") || catKey.includes("blood test") || catKey.includes("lab")) catKey = "diagnostic";
+        else if (catKey.includes("jewelry") || catKey.includes("jeweller") || catKey.includes("gold shop")) catKey = "jewelry";
+        else if (catKey.includes("sweet") || catKey.includes("mithai") || catKey.includes("ice cream") || catKey.includes("juice") || catKey.includes("shake")) catKey = "sweet shop";
+        else if (catKey.includes("dry clean") || catKey.includes("laundry") || catKey.includes("ironing") || catKey.includes("washing")) catKey = "laundry";
+        else if (catKey.includes("hardware") || catKey.includes("paint shop") || catKey.includes("sanitary") || catKey.includes("cement") || catKey.includes("electrical shop")) catKey = "hardware";
+        else if (catKey.includes("shop") || catKey.includes("store")) catKey = "shop";
+
         const hinglishReviews = {
           "university": [
             `${shop} ekdum mast jagah hai, campus bahut sundar hai aur atmosphere kaafi inspiring. Highly recommend!`,
             `Yaar sach mein ${shop} bohot achi university hai, yahan ki vibe alag hi level ki hai!`,
-            `${shop} visit kiya tha, zabardast experience tha — campus, faculty sab kuch top class.`
+            `${shop} visit kiya tha, zabardast experience tha — campus, faculty sab kuch top class.`,
+            `Bhai ${shop} ka campus life sach mein awesome hai, facilities aur crowd dono badhiya hain.`,
+            `Education and research ke liye ${shop} best option hai, infrastructure ekdum solid hai.`,
+            `Yaar ${shop} ki memories life-long rahengi, faculty bahut supportive hai.`,
+            `${shop} ka placement record aur campus environment dono hi lajawab hain.`,
+            `Bhai agar achi university chahiye toh ${shop} bilkul eye-closed trust kar sakte ho.`,
+            `${shop} is simply great. Yahan ki library aur labs ekdum state-of-the-art hain.`,
+            `Tbh ${shop} campus green aur clean hai, and padhai ka mahaul bahut badhiya hai.`
           ],
           "college": [
             `${shop} mein padhai ka mahaul bahut achi hai, faculty bhi kaafi helpful. Must visit!`,
-            `Bhai ${shop} ekdum solid college hai, yahan ki education quality really good hai.`
+            `Bhai ${shop} ekdum solid college hai, yahan ki education quality really good hai.`,
+            `Yaar ${shop} ki campus life and cultural events ekdum mast hote hain, love it!`,
+            `${shop} ka staff kaafi friendly hai aur learning experience bohot badhiya hai.`,
+            `Bhai sports and studies dono ke liye ${shop} best college hai yahan.`,
+            `Tbh ${shop} mein placement support aur guidance kaafi sahi milti hai.`,
+            `${shop} ka environment bohot clean aur safe hai, clean classrooms hain.`,
+            `Yaar ${shop} se graduation karna best decision tha, learning experience was great.`,
+            `Bhai college life ke liye ${shop} is perfect, environment ekdum positive hai.`,
+            `${shop} ka labs and library setup kaafi modern hai, recommended college.`
           ],
           "restaurant": [
             `${shop} ka khana sach mein zabardast tha, aur service bhi bahut fast thi. Jaroor aana chahiye!`,
             `Yaar ${shop} mein jo khaya, ekdum mast tha! Bilkul paisa vasool.`,
             `${shop} ka dinner ekdum lajawab tha, service top notch aur behavior bahut acha tha.`,
-            `Bhai ${shop} ka taste sach mein badhiya hai, friends ke sath hangout karne ke liye mast jagah hai.`
+            `Bhai ${shop} ka taste sach mein badhiya hai, friends ke sath hangout karne ke liye mast jagah hai.`,
+            `${shop} ki special dishes sach mein best hain, taste abhi tak yaad hai.`,
+            `Yaar family ke sath dinner ke liye ${shop} ekdum perfect and cozy place hai.`,
+            `Bhai ${shop} ka hygiene aur food presentation ekdum class-apart hai.`,
+            `Tbh yahan ka rate bhi kaafi reasonable hai aur quantity bhi bahut sahi hai.`,
+            `Yaar ${shop} ka taste bilkul authentic tha, highly recommend.`,
+            `Bhai service speed aur waiters ka behavior ${shop} par ekdum respectful tha.`
           ],
           "cafe": [
             `${shop} ki coffee bahut achi hai aur vibe bhi kaafi cozy. Dobara zaroor aaunga!`,
-            `Bhai ${shop} ekdum chill jagah hai, chai-coffee sab mast. Highly recommend yaar!`
+            `Bhai ${shop} ekdum chill jagah hai, chai-coffee sab mast. Highly recommend yaar!`,
+            `Yaar ${shop} ka aesthetics aur background music bohot soothing tha, best place to work.`,
+            `${shop} ke snacks aur cold coffee ekdum delicious hain, price bhi friendly hai.`,
+            `Bhai weekend pe chill karne ke liye ${shop} best cafe hai area mein.`,
+            `Tbh yahan ka staff bahut chill hai aur coffee selection ekdum unique hai.`,
+            `Yaar ${shop} par doston ke sath gupshup karne ka maza hi alag hai, vibe mast hai.`,
+            `Bhai ${shop} ka hot chocolate aur garlic bread ekdum lajawab tha.`,
+            `Cozy seating and great lighting, ${shop} photography ke liye bhi badhiya place hai.`,
+            `Tbh yahan ki service fast hai aur atmosphere ekdum peaceful hai, highly recommend!`
           ],
           "hotel": [
             `${shop} mein room kaafi clean and comfortable tha, service bhi bahut fast thi. Jaroor visit karein!`,
             `Yaar ${shop} stay experience sach mein ekdum mast tha, friendly staff aur peaceful location.`,
-            `${shop} ekdum solid jagah hai stay karne ke liye, service top class hai.`
+            `${shop} ekdum solid jagah hai stay karne ke liye, service top class hai.`,
+            `Bhai yahan ke rooms ka size aur cleaning ekdum up to the mark thi.`,
+            `Tbh ${shop} ka reception staff bahut cooperative hai, check-in super smooth tha.`,
+            `Yaar yahan ki location connectivity aur view dono kaafi acche hain.`,
+            `Bhai price ke hisab se ${shop} mein luxury service mili, value for money stay.`,
+            `${shop} ka breakfast menu aur taste dono ekdum badhiya the, worth it.`,
+            `Yaar family ke sath stay ke liye ${shop} safe aur clean option hai.`,
+            `Tbh standard room amenities aur clean washrooms the, excellent hospitality from ${shop}.`
           ],
           "lodge": [
             `${shop} bahut achi aur budget-friendly place hai stay karne ke liye, room clean aur staff helpful tha.`,
             `Bhai ${shop} mein stay comfortable tha aur low price mein bahut achi service mili.`,
-            `${shop} ekdum mast lodge hai, clean rooms aur safe environment hai stay ke liye.`
+            `${shop} ekdum mast lodge hai, clean rooms aur safe environment hai stay ke liye.`,
+            `Yaar short stay ke liye ${shop} best budget lodge hai, no issues at all.`,
+            `Bhai room check-in fast tha, aur bed aur sheets ekdum clean the.`,
+            `Tbh ${shop} ka location main market ke pass hai, easy to reach.`,
+            `Yaar owner ka behavior bahut humble tha, feels like home stay.`,
+            `Bhai safe, quiet aur budget-friendly option hai ${shop}, highly recommend.`,
+            `${shop} ki basic amenities aur water supply ekdum proper thi.`,
+            `Tbh single travelers ke liye ${shop} ekdum safe aur affordable place hai.`
           ],
           "mobile shop": [
             `Yaar ${shop} par mobiles ki bahut achi collection hai aur prices bhi ekdum reasonable hain.`,
             `${shop} ekdum best mobile shop hai, customer service aur products dono lajawab hain.`,
-            `Bhai ${shop} se main phone liya, genuine product aur best deal mili yahan.`
+            `Bhai ${shop} se main phone liya, genuine product aur best deal mili yahan.`,
+            `Tbh yahan ke sales staff product details kaafi acche se samjhate hain.`,
+            `Yaar accessories ki quality aur range bhi ${shop} par kaafi badhiya hai.`,
+            `Bhai phone exchange rate bhi ${shop} ne market se badhiya lagaya.`,
+            `Tbh trustable shop hai, saare mobile brand original warranty ke sath milte hain.`,
+            `Yaar local area mein new mobile lene ke liye ${shop} hi best shop hai.`,
+            `Bhai yahan fast financing and EMI options bhi readily available hain.`,
+            `${shop} ka customer service experience super satisfying raha, recommended!`
           ],
           "mobile repair shop": [
             `${shop} par repair service bahut fast hai, phone ekdum naya jaisa bana diya.`,
             `Bhai ${shop} trustworthy shop hai repair ke liye, reasonable charge aur quick service.`,
-            `Yaar phone screen damage ho gaya tha, ${shop} ne jaldi aur acche se thik kar diya.`
-          ],
-          "mobile repairing shop": [
-            `${shop} par repair service bahut fast hai, phone ekdum naya jaisa bana diya.`,
-            `Bhai ${shop} trustworthy shop hai repair ke liye, reasonable charge aur quick service.`,
-            `Yaar phone screen damage ho gaya tha, ${shop} ne jaldi aur acche se thik kar diya.`
+            `Yaar phone screen damage ho gaya tha, ${shop} ne jaldi aur acche se thik kar diya.`,
+            `Tbh yahan mobile spare parts original use hote hain, highly reliable.`,
+            `Bhai mobile repairing ke liye ${shop} se sasta aur fast kaam kahin nahi milega.`,
+            `Yaar software issue tha phone mein, ${shop} ne 15 minute mein solve kar diya.`,
+            `Tbh behavior and transparency yahan ekdum clean hai, no extra charging.`,
+            `Bhai screen replacement original warranty ke sath mili ${shop} par, super happy.`,
+            `Yaar display change karwaya yahan, touch quality ekdum naya jaisa chal raha hai.`,
+            `Tbh charging port repair bahut jaldi and low cost me ho gaya, thanks ${shop}!`
           ],
           "clothing shop": [
             `${shop} par clothes ki quality bahut achi hai aur latest trends milte hain yahan.`,
             `Bhai ${shop} se shopping karke maza aa gaya, clothes collection ekdum mast hai.`,
-            `Yaar ${shop} par fabric quality aur fitting bohot sahi mili, definitely recommend!`
-          ],
-          "clothing": [
-            `${shop} par clothes ki quality bahut achi hai aur latest trends milte hain yahan.`,
-            `Bhai ${shop} se shopping karke maza aa gaya, clothes collection ekdum mast hai.`,
-            `Yaar ${shop} par fabric quality aur fitting bohot sahi mili, definitely recommend!`
+            `Yaar ${shop} par fabric quality aur fitting bohot sahi mili, definitely recommend!`,
+            `Tbh traditional aur modern dono types ke kapde yahan mil jaate hain.`,
+            `Bhai yahan ke pricing designs ke hisab se ekdum pocket-friendly hain.`,
+            `Yaar shop keeper aur staff ka attitude customized clothing choice me kaafi helpful tha.`,
+            `Bhai daily wear and party wear collections ekdum outstanding hain yahan.`,
+            `Tbh size options aur variety of colours bahut sahi hain ${shop} par.`,
+            `Yaar brand new collections hamesha available rehte hain, trending outfits.`,
+            `Bhai ${shop} se main kurta kharida, quality aur style dono ekdum high class hain.`
           ],
           "mall": [
             `${shop} visit karke bahut accha laga, shopping aur entertainment ke liye mast place hai.`,
             `Yaar ${shop} ekdum clean aur well-maintained mall hai, yahan sab brands mil jaate hain.`,
-            `Bhai weekend hangout ke liye ${shop} best jagah hai, food court aur screens sab badhiya hai.`
+            `Bhai weekend hangout ke liye ${shop} best jagah hai, food court aur screens sab badhiya hai.`,
+            `Tbh ${shop} ka parking space bahut bada hai aur design kaafi impressive hai.`,
+            `Yaar shopping, gaming and food items sab ek hi roof ke niche, love ${shop}.`,
+            `Bhai yahan security aur crowd maintenance ekdum top-level ki hoti hai.`,
+            `Tbh ${shop} is a beautiful mall, family shopping ke liye best destination hai.`,
+            `Yaar cinema experience aur game zone toh ${shop} ka alag hi level par hai.`,
+            `Bhai brands offers aur festivals decoration yahan hamesha awesome hote hain.`,
+            `${shop} is clean, fully air-conditioned, and has a super lively vibe.`
+          ],
+          "hospital": [
+            `${shop} ke doctors aur staff bahut supportive hain, care aur cleanliness ekdum top level ki hai.`,
+            `Bhai ${shop} mein checkup ke liye gaya tha, diagnosis aur treatment kaafi jaldi aur acche se ho gaya.`,
+            `Yaar yahan ki service aur doctors ka behavior bohot badhiya hai, trusted hospital hai.`,
+            `Bhai hospital ka emergency response system bahut fast hai, highly appreciated.`,
+            `Tbh room sanitation aur general cleanliness standards ${shop} me ekdum perfect hain.`,
+            `Yaar nursing staff bahut polite hai, patient ko proper time aur caring milti hai.`,
+            `Bhai billing process me complete transparency hai, unnecessary charges nahi lagate.`,
+            `Tbh the medical equipments are very modern and the pharmacy inside is super convenient.`,
+            `Yaar standard hygiene and well-maintained rooms, ${shop} is a highly recommended healthcare center.`,
+            `Bhai senior doctors bahut experienced hain aur treatment guidance bilkul sahi dete hain.`
+          ],
+          "pharmacy": [
+            `${shop} par sabhi medicines mil jaati hain aur discounts bhi kaafi ache milte hain. Must visit!`,
+            `Bhai genuine medicines ke liye ${shop} best hai, staff helpful hai aur fast service hai.`,
+            `Yaar prescription ki saari dawaiyan yahan ek hi baar mein mil gayi, timing bhi bahut sahi hai.`,
+            `Tbh online medicines order delivery support bhi ${shop} ka bahut punctual hai.`,
+            `Bhai pharmaceutical items ke sath daily wellness products bhi readily available hain.`,
+            `Yaar staff medicinal usage and description details bhi acche se guide karta hai.`,
+            `Bhai cash back offers and pricing structure yahan regular market comparison me sasta hai.`,
+            `Tbh ${shop} reliable medical store hai, original packaging and batch expiry checks proper hain.`,
+            `Yaar location and operating hours bhi highly convenient hain, highly recommended.`,
+            `Bhai urgent medical needs ke time ${shop} par medicines discount rate pe mil gaye.`
+          ],
+          "barber": [
+            `${shop} mein haircut aur styling kaafi badhiya hoti hai, professional staff aur clean environment.`,
+            `Bhai yahan ke hair stylists sach mein ekdum talented hain, exact waisa hi look mila jo chahiye tha!`,
+            `Yaar ${shop} is the best place for grooming, service awesome hai aur rates bhi reasonable hain.`,
+            `Bhai salon ka hygiene level aur sterilized equipment check proper tha, super satisfied.`,
+            `Tbh hair spa aur grooming treatment ${shop} mein bahut relaxation provide karta hai.`,
+            `Yaar doston ko recommend kiya, unka haircut experience bhi yahan ekdum class raha.`,
+            `Bhai staff waiting time maintain karne me helpful hai aur customer care behavior solid hai.`,
+            `Tbh brand name product models use hote hain hair treatments me, trustable salon.`,
+            `Yaar regular styling updates inko acche se aati hain, highly recommended place.`,
+            `Bhai pricing standard ke hisab se value for money service mili ${shop} par.`
+          ],
+          "gym": [
+            `${shop} gym mein equipment ekdum modern hain aur trainers kaafi helpful aur knowledgeable hain.`,
+            `Bhai workout ke liye ${shop} best place hai, clean area aur energetic environment hai.`,
+            `Yaar yahan ka vibe workout ke liye super motivating hai, highly recommend!`,
+            `Bhai hygiene standards, clean change rooms aur properly maintained gym layout.`,
+            `Tbh trainers workout form correction pe proper personal attention dete hain.`,
+            `Yaar fitness routine design and dietary plan guide yahan kaafi useful mila.`,
+            `Bhai monthly and annual membership plans kaafi cost-friendly hain.`,
+            `Tbh gym crowds are decent and the positive environment keeps you charged.`,
+            `Yaar cardio area, weight section and cross-fit setup sab high class hai.`,
+            `Bhai proper workout environment seek kar rahe ho toh ${shop} is best place.`
+          ],
+          "bakery": [
+            `${shop} ke cakes aur pastries ekdum fresh aur delicious hote hain, taste sach mein lajawab hai!`,
+            `Bhai birthday cake order kiya tha ${shop} se, design aur taste dono ekdum mast the.`,
+            `Yaar yahan ki custom items aur cookies kaafi fresh hoti hain, highly recommend!`,
+            `Bhai custom cake design accuracy yahan bilkul exact level pe milti hai.`,
+            `Tbh fresh baked bread aur puff items ki fragrance hi bohot refreshing hai.`,
+            `Yaar desserts range and snack quality yahan regular level se superior hai.`,
+            `Bhai prices are super reasonable for such high quality bakery treats.`,
+            `Tbh customer care behaviour and custom orders management is extremely punctual.`,
+            `Yaar chocolate truffle cake from ${shop} is a masterpiece, must-try item!`,
+            `Bhai cleanly maintained display and hygienic baking process is visible.`
+          ],
+          "grocery": [
+            `${shop} par saara grocery item ek hi jagah mil jata hai, prices bhi market se saste hain.`,
+            `Bhai fresh vegetables aur daily essentials ke liye ${shop} best store hai, billing bhi fast hai.`,
+            `Yaar store kaafi organised hai aur staff helpful hai, shopping experience mast raha.`,
+            `Bhai home daily essential provisions easily stack and clean presentation proper hai.`,
+            `Tbh discounts and bundle offer packages yahan regular market comparison mein mast hain.`,
+            `Yaar yahan staff billing speed maintenance aur stock display arrangement me smooth hai.`,
+            `Bhai grocery items quality standard checks are very original, no duplicate items.`,
+            `Tbh the store owner behavior and helper guidance is extremely polite.`,
+            `Yaar monthly kitchen stock shopping ke liye ${shop} is the absolute best destination.`,
+            `Bhai clean environment aur safe home delivery options support reliable hain.`
+          ],
+          "auto repair": [
+            `${shop} par service bahut fast hai, car ekdum naye jaisi chamak rahi hai!`,
+            `Bhai service quality aur behavior dono mast hai yahan, reasonable rate mein kaam ho gaya.`,
+            `Yaar car wash aur detailing ke liye ${shop} best option hai, absolute detailing work.`,
+            `Bhai trustworthy mechanic shop hai, problem acche se diagnose karke sahi solve kiya.`,
+            `Tbh yahan time waste nahi hota, service jaldi aur neat and clean milti hai.`,
+            `Yaar alignment aur wheel balancing ka kaam ${shop} ne perfect kiya.`,
+            `Bhai behavior very professional tha, genuine parts use karte hain.`,
+            `Tbh low cost service charges aur high quality repair work, highly satisfied.`,
+            `Yaar yahan customer lounge bhi achi hai, car servicing jaldi ho gayi.`,
+            `Bhai standard repair work and quick response, ${shop} is the best garage in the area.`
+          ],
+          "dentist": [
+            `${shop} mein treatment ke time pain bilkul feel nahi hua, doctor bahut polite hain.`,
+            `Bhai root canal checkup/dentistry ke liye ${shop} best clinic hai, hygienic rooms hain.`,
+            `Yaar doctor ne procedure bahut patiently aur detail me samjhaya, highly recommended.`,
+            `Bhai pricing structure treatment ke hisab se ekdum reasonable hai yahan.`,
+            `Tbh teeth cleaning aur scaling experience kaafi smooth aur clean tha.`,
+            `Yaar dental care aur behavior dono ${shop} par top level ke hain.`,
+            `Bhai safe clinic environment aur modern dental machines use karte hain.`,
+            `Tbh yahan strict sanitization follow hota hai, safe treatment and caring staff.`,
+            `Yaar appointment time scheduling proper hai, no long waiting lines.`,
+            `Bhai generic tooth problems ke liye ${shop} is a highly trusted dental clinic.`
+          ],
+          "spa": [
+            `${shop} mein massage session bahut relaxing tha, ambiance ekdum peaceful hai.`,
+            `Bhai body spa treatment aur staff behavior sach mein ekdum premium tha.`,
+            `Yaar fresh feel karne ke liye ${shop} is the absolute best wellness center.`,
+            `Bhai strict hygiene maintenance aur pleasant fragrance, relaxation ka alag level.`,
+            `Tbh yahan ke therapists highly certified aur experienced hain.`,
+            `Yaar steam bath and relaxation rooms ekdum neat and clean hain yahan.`,
+            `Bhai package pricing are very reasonable for such a luxury treatment experience.`,
+            `Tbh standard massage oils aur clean towels use hote hain, highly hygienic.`,
+            `Yaar stressful routine se break lene ke liye ${shop} best choice hai.`,
+            `Bhai overall service quality and customer care standards ekdum top class hain.`
+          ],
+          "pet care": [
+            `${shop} par doctors pets ke sath bahut gentle hain, checkup bahut acche se kiya.`,
+            `Bhai pet food aur toys ki range yahan sabse sasti aur genuine milti hai.`,
+            `Yaar pet grooming and hair trim service ${shop} par ekdum professional thi.`,
+            `Bhai my puppy treatment was handled very carefully, very friendly veterinary clinic.`,
+            `Tbh hygiene and sanitization for pets is highly maintained here.`
+          ],
+          "electronics": [
+            `${shop} se electronics item kharida, best discount aur authentic product mil gaya.`,
+            `Bhai home appliance repair and maintenance services yahan bahut quick hain.`,
+            `Yaar laptop repair and software update bahut reasonable prices me ho gaya.`,
+            `Bhai yahan billing aur warranty claim policies ekdum straightforward aur genuine hain.`,
+            `Tbh sales team models selection aur features description bohot detail me batati hai.`,
+            `Yaar CCTV installation and technician guidance ${shop} ne bilkul smooth kiya.`,
+            `Bhai parts exchange rates also standard market compare me acche lagate hain.`,
+            `Tbh mobile screens repair display replacement original warranty ke sath milti hai.`,
+            `Yaar electronics range options are very wide, highly satisfying visit.`
+          ],
+          "optician": [
+            `${shop} par specs collection bahut modern hai aur frame quality ekdum solid hai.`,
+            `Bhai eye testing test computerised and free consultation support, very professional.`,
+            `Yaar lens quality aur prescription adjustment fitting perfect mili.`,
+            `Bhai billing discounts aur brand frames rate check kaafi reasonable hain.`,
+            `Tbh staff behavior and frames selection guide is very cooperative.`,
+            `Yaar custom contact lens order time pe delivery mil gaya, happy customer.`,
+            `Bhai trendy shades aur specs models look perfect, must visit store.`,
+            `Tbh warranty on lenses aur damage protection services support helpful hai.`,
+            `Yaar shop presentation clean hai aur eyewear range bohot wide hai.`,
+            `Bhai local area mein chashma banwane ke liye ${shop} hi best option hai.`
+          ],
+          "diagnostic": [
+            `${shop} par blood collection team bahut gentle thi, sample collection bilkul painless raha.`,
+            `Bhai test reports online timing pe delivery mil gayi, speed bohot sahi hai.`,
+            `Yaar diagnostic facility check aur hygiene standard lab ka top class hai.`,
+            `Bhai packages price range check, health packages have massive discount offers.`,
+            `Tbh testing machines are highly modern and reports standard is trustable.`,
+            `Yaar staff behaviour and guidelines explanation very polite and clear.`,
+            `Bhai strict patient sanitation rules and protocols are strictly followed.`,
+            `Tbh quick diagnostics reports output and no queue long waiting hassle.`,
+            `Yaar laboratory testing authenticity and support completely satisfactory.`,
+            `Bhai generic health checkups tests diagnostic needs ke liye ${shop} best lab hai.`
+          ],
+          "jewelry": [
+            `${shop} par jewelry designs ekdum unique aur traditional both classes me solid hain.`,
+            `Bhai pure gold certification and Hallmark verification checks proper rehte hain.`,
+            `Yaar custom ornament making charge yahan market se sasta aur clear hai.`,
+            `Bhai purchase experience standard was very luxury, staff behaviour polite hai.`,
+            `Tbh yahan trusted investment models aur gold schemes support helpful hain.`,
+            `Yaar diamond rings matching quality design perfection is premium.`,
+            `Bhai weight balance calculations and bill breakdown details transparent hain.`,
+            `Tbh local area gold buying and luxury ornaments ke liye ${shop} best trusted shop.`,
+            `Yaar designs variation collections are amazing, wedding options best hain.`,
+            `Bhai customer relationship management aur support after sale super class hai.`
+          ],
+          "sweet shop": [
+            `${shop} ki sweets ka taste aur fresh fragrance ekdum mast aur delicious hai!`,
+            `Bhai hygienic preparations, packaging quality aur sweets display clean hai.`,
+            `Yaar yahan ki special desserts aur ice creams range absolutely must try.`,
+            `Bhai seasonal fruit juice items pure aur fresh milte hain, highly refreshing.`,
+            `Tbh festival shopping packing order time limit performance yahan punctual hai.`,
+            `Yaar pure ghee traditional items taste is authentic, highly recommend.`,
+            `Bhai pricing structure standard items ke liye normal market rate rehta hai.`,
+            `Tbh taste consistency and friendly owner behavior, love ${shop}.`,
+            `Yaar custom bulk packaging for programs and birthday events is super clean.`,
+            `Bhai quick response sales staff and cleanliness is always maintained.`
+          ],
+          "laundry": [
+            `${shop} ne laundry and ironing quality ekdum smooth, clothes pure fresh lag rahe hain.`,
+            `Bhai dry cleaning service response fast hai, stain/daag acche se remove kar diye.`,
+            `Yaar price structure clothing type specifications ke hisab se ekdum budget friendly hai.`,
+            `Bhai package packaging delivery neat press folding condition me mili.`,
+            `Tbh delicate fabrics treatment quality is very safe, highly recommended.`,
+            `Yaar delivery punctuality was on time, no delay delay excuses.`,
+            `Bhai customer care behaviour yahan regular laundry shops se polite hai.`,
+            `Tbh stain diagnostics aur washing methods updates highly professional hain.`,
+            `Yaar custom home pickup and delivery support highly prompt rehta hai.`,
+            `Bhai reliable laundry partner for daily cleaning needs, happy with ${shop}.`
+          ],
+          "hardware": [
+            `${shop} par sanitary and hardware fitting range options aone standard ke hain.`,
+            `Bhai product durability reliable aur price rates standard market se saste hain.`,
+            `Yaar paint colors matching collection choices yahan highly modern and wide hain.`,
+            `Bhai plumbing items quality verification guidelines help is excellent.`,
+            `Tbh owner behaves like a professional adviser, guides you to select best parts.`,
+            `Yaar tools build structure and hardware accessories quality is original.`,
+            `Bhai customer post sales help and parts exchange support is transparent.`,
+            `Tbh trustable shop, standard brand hardware items original warranty rate pe milte hain.`,
+            `Yaar custom home design sanitary equipment look outstanding, must visit.`,
+            `Bhai builders and domestic repair works material shopping for best place.`
+          ],
+          "shop": [
+            `${shop} par collection bahut achi hai aur prices bhi reasonable hain, standard products milte hain.`,
+            `Bhai shopping ke liye ${shop} trusted place hai, customer service kaafi polite hai.`,
+            `Yaar yahan ka experience bohot badhiya raha, friendly owner aur items ki quality aone hai.`,
+            `Bhai latest stock collection hamesha ready milta hai aur prices negotiable hain.`,
+            `Tbh genuine products and transparent customer deals, highly satisfied with ${shop}.`,
+            `Yaar response customer care behavior yahan local market me best standard ka hai.`,
+            `Bhai unique variety items aur value for money options provide karte hain.`,
+            `Tbh shop location accessibility simple aur neat display setup hai.`,
+            `Yaar yahan visit karke time and money dono completely worth feel hota hai.`,
+            `Bhai recommended shopping spot, reliability aur service level solid hai.`
           ]
         };
 
@@ -595,61 +871,335 @@
           "university": [
             `Honestly one of the best campuses I've visited — ${shop} has an incredible atmosphere and rich history.`,
             `Really loved the vibe at ${shop}, the campus is beautiful and the academic energy is just different.`,
-            `Tbh ${shop} exceeded my expectations, stunning campus and world-class faculty. Highly recommend!`
+            `Tbh ${shop} exceeded my expectations, stunning campus and world-class faculty. Highly recommend!`,
+            `Great academic infrastructure and a very lively student community at ${shop}.`,
+            `The faculty at ${shop} is highly knowledgeable and always willing to guide students.`,
+            `Honestly, ${shop} offers top-tier research facilities and a great learning environment.`,
+            `Stunning campus with excellent modern amenities, ${shop} is a great place to study.`,
+            `Had an amazing time visiting ${shop}, the campus environment is very positive and green.`,
+            `The academic standards and career opportunities at ${shop} are truly outstanding.`,
+            `Tbh ${shop} is an exceptional university with a great heritage and modern facilities.`
           ],
           "college": [
             `Super impressed by ${shop} — great learning environment and really helpful faculty.`,
-            `Honestly ${shop} is a solid institution, the atmosphere is great and the teaching quality is top notch.`
+            `Honestly ${shop} is a solid institution, the atmosphere is great and the teaching quality is top notch.`,
+            `Tbh ${shop} is a fantastic college with a beautiful campus and active student activities.`,
+            `The professors at ${shop} are extremely dedicated and supportive of every student.`,
+            `Great infrastructure and career placement support. Highly recommend joining ${shop}.`,
+            `Honestly, the labs and classrooms at ${shop} are very well-equipped.`,
+            `Had a wonderful time studying at ${shop}, made great friends and learned a lot.`,
+            `Tbh ${shop} offers an excellent balance between academics and extracurricular activities.`,
+            `Very safe and clean college environment, ${shop} is highly recommended for higher education.`,
+            `The overall support and mentorship program at ${shop} is really impressive.`
           ],
           "restaurant": [
             `Honestly the food at ${shop} was incredible, and the service was super fast too. 100% coming back!`,
             `Really loved dining at ${shop} — the flavors were amazing and the staff were so friendly.`,
             `Tbh the food at ${shop} was super fresh and delicious, definitely a 10/10 experience.`,
-            `Honestly one of the best dining experiences I've had, ${shop} has great taste and quick service.`
+            `Honestly one of the best dining experiences I've had, ${shop} has great taste and quick service.`,
+            `The ambiance at ${shop} is lovely and the food quality is absolutely premium.`,
+            `Tbh the menu selection at ${shop} is fantastic and everything tasted delicious.`,
+            `Really impressed by the cleanliness and the welcoming behavior of the staff at ${shop}.`,
+            `Honestly, ${shop} serves the best local cuisine in town. Must-try place for foodies.`,
+            `Very family-friendly environment and the portions are great for the price at ${shop}.`,
+            `Tbh the food was cooked to perfection and served hot. Excellent job by ${shop}!`
           ],
           "cafe": [
             `Tbh ${shop} is my new favorite spot, the coffee is amazing and the vibe is super cozy!`,
-            `Really loved the atmosphere at ${shop} — great drinks, chill vibes, and friendly staff.`
+            `Really loved the atmosphere at ${shop} — great drinks, chill vibes, and friendly staff.`,
+            `Honestly, the aesthetic design and background music at ${shop} are just perfect for relaxing.`,
+            `Had a wonderful cold brew and some amazing pastries at ${shop}. Highly recommend!`,
+            `The staff at ${shop} are super welcoming and the service is incredibly fast.`,
+            `Tbh ${shop} is a perfect workspace with fast Wi-Fi and excellent coffee options.`,
+            `Really loved the unique drink selection and cozy seating arrangements at ${shop}.`,
+            `Honestly, the hot chocolate and snacks at ${shop} were absolutely delicious.`,
+            `A very charming cafe with great indoor and outdoor vibes. ${shop} is a must-visit!`,
+            `Tbh the overall experience at ${shop} was superb, very clean and peaceful atmosphere.`
           ],
           "hotel": [
             `Honestly the rooms at ${shop} were super clean and comfortable, service was really quick too.`,
             `Really loved my stay at ${shop} — the staff were friendly and the vibe was super relaxing.`,
-            `Tbh ${shop} is a great place to stay, excellent service and comfortable rooms. Highly recommend!`
+            `Tbh ${shop} is a great place to stay, excellent service and comfortable rooms. Highly recommend!`,
+            `The booking process was seamless and the hospitality at ${shop} was top notch.`,
+            `Honestly, the rooms are spacious and the views from the hotel are beautiful.`,
+            `The location of ${shop} is very convenient and close to major attractions.`,
+            `Tbh ${shop} offers premium amenities and very professional customer service.`,
+            `Really enjoyed the delicious breakfast options and prompt room service at ${shop}.`,
+            `A highly safe, hygienic, and well-maintained property. Will definitely visit ${shop} again.`,
+            `Honestly, the staff went above and beyond to make our stay comfortable at ${shop}.`
           ],
           "lodge": [
             `Tbh ${shop} offers great accommodation at a reasonable price, clean rooms and friendly staff.`,
             `Honestly my stay at ${shop} was comfortable and completely hassle-free, highly recommend for budget travelers.`,
-            `Really satisfied with my stay at ${shop} — quiet atmosphere, clean rooms, and helpful service.`
+            `Really satisfied with my stay at ${shop} — quiet atmosphere, clean rooms, and helpful service.`,
+            `A very neat and affordable lodging option. ${shop} is great for quick stops.`,
+            `Honestly, the owner and staff at ${shop} were exceptionally polite and helpful.`,
+            `Tbh the location is excellent and the basic amenities are very well managed.`,
+            `Had a very peaceful and safe stay at ${shop}. Highly recommend for budget stays.`,
+            `Really clean washrooms and comfortable bedding at a very fair price.`,
+            `Honestly, ${shop} exceeded my expectations for a budget lodge. Great service.`,
+            `Tbh a highly convenient place to stay with quick check-in and check-out.`
           ],
           "mobile shop": [
             `Tbh ${shop} has an amazing collection of smartphones and the deals are really good.`,
             `Honestly the staff at ${shop} are super helpful, highly recommend this store for buying phones.`,
-            `Really loved the shopping experience at ${shop}, genuine products and helpful service.`
+            `Really loved the shopping experience at ${shop}, genuine products and helpful service.`,
+            `The store offers a fantastic range of the latest mobile models and accessories.`,
+            `Tbh ${shop} is a highly trustworthy shop with original products and official warranty.`,
+            `Honestly, the staff explained the features of the phones very patiently and clearly.`,
+            `Got a great discount on my new phone purchase at ${shop}. Very happy with the deal!`,
+            `Tbh they have the best range of protective covers and chargers in the area.`,
+            `Excellent customer service and easy finance/EMI schemes available at ${shop}.`,
+            `Honestly the best place in town for mobile shopping. Great vibes and pricing.`
           ],
           "mobile repair shop": [
             `Honestly the mobile repair service at ${shop} was super fast and completely transparent.`,
             `Tbh ${shop} is highly reliable for phone repairs, they fixed my device quickly and at a fair price.`,
-            `Really impressed by the quick service at ${shop}, they diagnosed and repaired my phone perfectly.`
-          ],
-          "mobile repairing shop": [
-            `Honestly the mobile repair service at ${shop} was super fast and completely transparent.`,
-            `Tbh ${shop} is highly reliable for phone repairs, they fixed my device quickly and at a fair price.`,
-            `Really impressed by the quick service at ${shop}, they diagnosed and repaired my phone perfectly.`
+            `Really impressed by the quick service at ${shop}, they diagnosed and repaired my phone perfectly.`,
+            `Honestly, they replaced my cracked screen with a high-quality original display.`,
+            `The repair charges at ${shop} are very reasonable compared to authorized centers.`,
+            `Tbh they fixed a complicated charging and logic board issue in no time.`,
+            `Very friendly and skilled technicians at ${shop}. Highly recommend for mobile issues.`,
+            `Honestly, the transparency they maintain about spare parts is highly appreciated.`,
+            `Got my phone speaker repaired here, sound quality is back to perfect. Great job!`,
+            `Tbh ${shop} is a highly professional and quick mobile repair workshop.`
           ],
           "clothing shop": [
             `Tbh the fabric quality and style selection at ${shop} are absolutely amazing.`,
             `Honestly ${shop} is my go-to store now, great collection and very reasonable prices.`,
-            `Really loved the clothing collections at ${shop}, staff were super helpful too.`
-          ],
-          "clothing": [
-            `Tbh the fabric quality and style selection at ${shop} are absolutely amazing.`,
-            `Honestly ${shop} is my go-to store now, great collection and very reasonable prices.`,
-            `Really loved the clothing collections at ${shop}, staff were super helpful too.`
+            `Really loved the clothing collections at ${shop}, staff were super helpful too.`,
+            `Honestly, the store has an incredible collection of both modern and ethnic wear.`,
+            `The designs are very unique and the pricing is quite reasonable for the quality.`,
+            `Tbh the staff at ${shop} helped me choose the perfect fitting outfit. Great service.`,
+            `Had a wonderful shopping experience, they keep updating their stock with the latest trends.`,
+            `Highly impressed with the premium material quality and variety of colors at ${shop}.`,
+            `Honestly, ${shop} is the best place to shop for family events and festivals.`,
+            `Tbh the shopping environment is very neat and customer service is excellent.`
           ],
           "mall": [
             `Honestly ${shop} is a great mall with an amazing selection of stores and food options.`,
             `Really well-maintained mall, ${shop} is perfect for family shopping and entertainment.`,
-            `Tbh had a great time at ${shop}, very clean, spacious, and has all major brands.`
+            `Tbh had a great time at ${shop}, very clean, spacious, and has all major brands.`,
+            `Honestly, the mall infrastructure is modern and the parking facilities are huge.`,
+            `A complete destination for shopping, movies, and dining. Loved visiting ${shop}.`,
+            `Tbh the food court has a fantastic variety of global and local food brands.`,
+            `Really impressed with the hygiene standards and cleanliness throughout ${shop}.`,
+            `Honestly, ${shop} is a great spot to hang out with friends and family on weekends.`,
+            `The gaming section and movie halls inside the mall are top-tier.`,
+            `Tbh the decorative themes during festive seasons here are visually stunning.`
+          ],
+          "hospital": [
+            `Honestly, the medical care and hygiene standards at ${shop} are excellent. The doctors are very professional.`,
+            `Really impressed by the quick response and support from the staff at ${shop}. Highly recommend their services.`,
+            `Tbh the treatment here is top-notch. Doctors are friendly, attentive, and explain everything clearly.`,
+            `Honestly, the nursing staff at ${shop} provided exceptional care during our time of need.`,
+            `Very clean, sanitised, and well-managed medical facility. Highly professional environment.`,
+            `Tbh the emergency unit at ${shop} acts very fast. Extremely satisfied with their services.`,
+            `Highly professional doctors and accurate diagnosis. ${shop} is a highly trusted place.`,
+            `Honestly, the administrative and billing processes are very smooth and transparent.`,
+            `Modern medical infrastructure and top-tier clinical services are available at ${shop}.`,
+            `Tbh a highly reliable healthcare institution with compassionate staff and great facilities.`
+          ],
+          "pharmacy": [
+            `Honestly, ${shop} is highly reliable for getting all kinds of medicines. Fast checkout and friendly staff.`,
+            `Tbh they have great stock of all prescriptions and the discounts are quite reasonable. Recommended!`,
+            `Really clean and organized chemist, ${shop} always has what I need on time.`,
+            `Honestly, the pharmacists at ${shop} are very knowledgeable and explain dosage clearly.`,
+            `Excellent inventory, even rare medicines are easily available here at ${shop}.`,
+            `Tbh they maintain proper storage conditions for vaccines and temperature-sensitive drugs.`,
+            `Very fast service, they never make you wait in long queues at ${shop}.`,
+            `Honestly, the pricing is fair and they offer genuine discounts on bulk purchases.`,
+            `A highly trusted and professional pharmacy store with polite customer service.`,
+            `Tbh the home delivery service offered by ${shop} is quick and highly convenient.`
+          ],
+          "barber": [
+            `Honestly, ${shop} is the best salon in town. Professional stylists and the hygiene is top-notch.`,
+            `Really loved the haircut I got at ${shop}! The staff really pays attention to detail.`,
+            `Tbh a perfect place for grooming. Great ambiance, friendly staff, and very reasonable pricing.`,
+            `Honestly, the salon uses sterilized tools and maintains excellent cleanliness.`,
+            `The stylists at ${shop} understand modern trends and recommend styles that suit you.`,
+            `Tbh the facial and hair care treatments here are deeply relaxing and professional.`,
+            `Excellent customer service and very friendly staff members at ${shop}.`,
+            `Honestly, I got exactly the styling look I requested. Highly skilled team.`,
+            `A premium salon experience without the premium price tag. Highly recommend ${shop}.`,
+            `Tbh the queue management and booking system are very well organized.`
+          ],
+          "gym": [
+            `Honestly, ${shop} has top-tier workout equipment and the trainers are highly encouraging.`,
+            `Really clean and motivating fitness center. ${shop} is definitely the best place to work out.`,
+            `Tbh the energy here is amazing, clean locker rooms, and great training programs.`,
+            `Honestly, the personal trainers at ${shop} provide excellent guidance and form correction.`,
+            `A spacious workout area with a great range of cardio and strength machines.`,
+            `Tbh the membership packages at ${shop} are highly affordable and flexible.`,
+            `Excellent hygiene and sanitation protocols are followed throughout the facility.`,
+            `Honestly, the workout vibe is extremely motivating and the staff is very supportive.`,
+            `Great locker facilities, clean showers, and parking space at ${shop}.`,
+            `Tbh the fitness tracking and personalized routine guidance here are top notch.`
+          ],
+          "bakery": [
+            `Honestly, the cakes and pastries at ${shop} are super fresh and delicious. Must try!`,
+            `Really loved the custom cake we ordered from ${shop} — beautiful design and tasted amazing.`,
+            `Tbh their baked items are top-tier, always fresh and high quality.`,
+            `Honestly, the aroma of fresh breads and cookies at ${shop} is absolutely lovely.`,
+            `The staff is extremely helpful in suggesting custom designs and themes for party cakes.`,
+            `Tbh their pastries have the perfect amount of sweetness and taste premium.`,
+            `Very clean, well-presented display and hygienic baking standards at ${shop}.`,
+            `Honestly, the price point for these premium quality baked treats is very reasonable.`,
+            `The donuts and chocolate truffles from ${shop} are highly recommended.`,
+            `Tbh the order was ready precisely on time, excellent and reliable service.`
+          ],
+          "grocery": [
+            `Honestly, ${shop} is a one-stop store for all daily essentials. Very organized and prices are great.`,
+            `Really fresh products and quick service. The staff at ${shop} is always polite and helpful.`,
+            `Tbh a wonderful grocery shopping experience with fast billing and wide stock.`,
+            `Honestly, the store is very well-organized, making it easy to find everything quickly.`,
+            `Excellent discounts, bulk offers, and value-for-money items are always available.`,
+            `Tbh the vegetables and fresh produce section at ${shop} is extremely hygienic.`,
+            `Highly professional management and very quick billing counters, reducing wait times.`,
+            `Honestly, they have both local and imported brands in stock. Impressive variety.`,
+            `A highly clean, spacious, and family-friendly supermarket. Highly recommended.`,
+            `Tbh the home delivery options are extremely punctual and goods are packaged well.`
+          ],
+          "auto repair": [
+            `Honestly, the car wash and detailing service at ${shop} is outstanding. Highly recommended!`,
+            `Tbh they diagnosed and fixed my car's engine issue quickly and charged a fair price.`,
+            `Really satisfied with the service. ${shop} is the most reliable mechanic in town.`,
+            `Honestly, my car looks brand new after the polishing and detailing work here.`,
+            `Very professional staff and transparent pricing. No hidden fees at ${shop}.`,
+            `Tbh the staff is highly experienced and explained the repairs clearly.`,
+            `Excellent customer service and timely delivery. ${shop} did a great job.`,
+            `Honestly, their wheel alignment and brake service are top-tier.`,
+            `A highly clean workshop with original spare parts. Super happy with ${shop}.`,
+            `Tbh the best garage experience I've had. Fast, clean, and professional.`
+          ],
+          "dentist": [
+            `Honestly, the dental treatment at ${shop} was absolutely painless and professional.`,
+            `Tbh the doctor is highly experienced and explained the procedure very patiently.`,
+            `Really impressed with the hygiene standards and sanitised clinic setup at ${shop}.`,
+            `Honestly, got my teeth whitening and scaling done here, results are fantastic.`,
+            `The staff is extremely courteous and the waiting time is very well managed at ${shop}.`,
+            `Tbh the best clinic for dental implants and orthodontics. Highly professional.`,
+            `Very reasonable pricing and excellent dental care options are available here.`,
+            `Honestly, the doctor takes personal care of patients and follows up properly.`,
+            `Modern clinic equipment and highly skilled dental specialists at ${shop}.`,
+            `Tbh a wonderful dental experience, highly recommend ${shop} for all dental needs.`
+          ],
+          "spa": [
+            `Honestly, the massage therapy at ${shop} was deeply relaxing and professional.`,
+            `Tbh the ambiance is extremely peaceful, clean, and has a very positive vibe.`,
+            `Really impressed by the hospitality and behavior of the therapists at ${shop}.`,
+            `Honestly, the best spa experience in the area. High-quality oils and clean facilities.`,
+            `Tbh their wellness packages are very reasonable for the luxury services they provide.`,
+            `A highly sanitised and beautifully designed relaxation center. Highly recommend ${shop}.`,
+            `Excellent customer service and highly skilled staff members. Will visit again.`,
+            `Honestly, the steam session and post-massage therapy were fantastic.`,
+            `Tbh the booking process was seamless and the relaxation vibe was perfect.`,
+            `A perfect spot to rejuvenate and relax. Excellent service by ${shop}.`
+          ],
+          "pet care": [
+            `Honestly, the veterinary care at ${shop} is exceptional. The doctors are highly compassionate.`,
+            `Tbh my pet's grooming session was done beautifully, they were very gentle with my dog.`,
+            `Really impressed with the wide range of quality pet food and accessories at ${shop}.`,
+            `Honestly, the clinic is extremely clean and they maintain excellent pet hygiene.`,
+            `The staff is highly professional and handles animals with genuine care.`,
+            `Tbh ${shop} is the most reliable veterinary clinic and pet store in town.`,
+            `Got my puppy vaccinated here, the process was quick and completely stress-free.`,
+            `Honestly, the doctor explained the diet plans and prescription instructions very clearly.`,
+            `A highly recommended place for all pet accessories, food, and medical consultation.`,
+            `Tbh the emergency pet assistance here is very fast and helpful.`
+          ],
+          "electronics": [
+            `Honestly, ${shop} has an outstanding collection of electronics and home appliances.`,
+            `Tbh got my laptop repaired here, the service was super fast and very affordable.`,
+            `Really satisfied with the CCTV camera installation and post-sales support from ${shop}.`,
+            `Honestly, the staff explained the features of the TV/washing machine very professionally.`,
+            `They offer genuine products with official brand warranty and easy EMI schemes.`,
+            `Tbh the repair service charges are very transparent and there are no extra costs.`,
+            `Got a fantastic deal and discount on my AC purchase at ${shop}. Highly recommend!`,
+            `Honestly, the customer service is excellent and they handle queries very quickly.`,
+            `A very neat and organized store layout with highly helpful sales assistants.`,
+            `Tbh the best electronic showroom in the area, very friendly behavior.`
+          ],
+          "optician": [
+            `Honestly, the frame collection at ${shop} is highly stylish and offers premium quality.`,
+            `Tbh the computerised eye testing procedure was very accurate and professional.`,
+            `Really satisfied with my new prescription glasses. The lens clarity is perfect.`,
+            `Honestly, the staff helped me choose the right frame shape that suits me. Great service.`,
+            `They have a fantastic range of both budget-friendly and premium designer frames.`,
+            `Tbh the delivery of custom lenses was extremely prompt. Highly reliable optician.`,
+            `Got my sunglasses fitted here, scratch-resistant coding works perfectly.`,
+            `Honestly, the pricing is very transparent and customer service is top-notch at ${shop}.`,
+            `A highly neat, clean, and modern eyewear showroom. Highly recommended.`,
+            `Tbh a wonderful post-purchase adjustment service, frame fitting was spot on.`
+          ],
+          "diagnostic": [
+            `Honestly, the lab technician at ${shop} was highly skilled and the blood test was painless.`,
+            `Tbh they delivered the diagnostic test reports online exactly on time. Impressive speed.`,
+            `Really clean, sanitised, and well-managed diagnostic lab facility. Very professional.`,
+            `Honestly, they offer comprehensive health checkup packages at very reasonable rates.`,
+            `The staff is extremely helpful in explaining test preparations and guidelines.`,
+            `Tbh they follow strict international safety and hygiene protocols during tests.`,
+            `A highly advanced pathology laboratory with reliable and accurate reports output.`,
+            `Honestly, the billing process was smooth and the staff maintained proper queues.`,
+            `Excellent customer service and home sample collection facility is highly prompt.`,
+            `Tbh the best diagnostic center in town, highly recommended for clinical testing.`
+          ],
+          "jewelry": [
+            `Honestly, the jewelry collection at ${shop} is stunning, offering both classic and modern designs.`,
+            `Tbh they provide certified Hallmark gold and certified diamonds. Highly trustworthy.`,
+            `Really impressed by the transparent billing and reasonable making charges at ${shop}.`,
+            `Honestly, the staff was extremely patient and showed us various design options.`,
+            `The showroom is beautifully designed, maintaining a very premium shopping vibe.`,
+            `Tbh their customer relationship management and gold purchase schemes are excellent.`,
+            `Had a wonderful experience purchasing wedding jewelry here. Highly recommended.`,
+            `Honestly, the diamond finishing and craftsmanship details are top-tier at ${shop}.`,
+            `A highly trusted name in the jewelry business with honest weighing standards.`,
+            `Tbh the staff behaves very professionally and helps you select within your budget.`
+          ],
+          "sweet shop": [
+            `Honestly, the sweets at ${shop} are exceptionally fresh, authentic, and delicious.`,
+            `Tbh they serve the best local desserts, pure ghee sweets, and fresh delicacies.`,
+            `Really impressed with the hygiene standards and sanitised food handling protocols.`,
+            `Honestly, got fresh fruit juice/ice cream here, taste was absolutely refreshing.`,
+            `The staff is quick and manages packing orders very efficiently during busy hours.`,
+            `Tbh they have an amazing variety of snacks and traditional confectionery items.`,
+            `Very reasonable pricing and premium ingredients are used. High quality guaranteed.`,
+            `Honestly, the sweet box packaging design is beautiful and perfect for gifting.`,
+            `A highly clean, welcoming, and popular dessert spot in the locality.`,
+            `Tbh the taste quality remains consistently excellent. Must-visit sweet shop.`
+          ],
+          "laundry": [
+            `Honestly, the dry cleaning service at ${shop} is highly professional. Stains are completely gone.`,
+            `Tbh my clothes were ironed and folded perfectly, looking as good as new.`,
+            `Really satisfied with the quick turnaround time and prompt delivery from ${shop}.`,
+            `Honestly, the pricing for premium laundry and dry cleaning is very reasonable.`,
+            `They handle delicate fabrics with extreme care. Highly trustworthy dry cleaner.`,
+            `Tbh their home pickup and delivery service is exceptionally convenient and punctual.`,
+            `Very polite staff and excellent customer care response. Highly recommended.`,
+            `Honestly, the overall hygiene and packaging standard of the clean clothes is top-tier.`,
+            `A highly reliable laundry service that never compromises on fabric quality.`,
+            `Tbh the best dry cleaning showroom in the locality. Absolute value for money.`
+          ],
+          "hardware": [
+            `Honestly, ${shop} is a one-stop store for all building, paint, and hardware materials.`,
+            `Tbh they have an excellent inventory of durable pipes, fittings, and sanitary ware.`,
+            `Really satisfied with the custom paint color mixing advice. Exact shades matched.`,
+            `Honestly, the pricing is very competitive and they stock all major authentic brands.`,
+            `The store owner is highly knowledgeable and suggests the best product solutions.`,
+            `Tbh they have the best collection of modern electrical fittings and tools.`,
+            `Excellent customer service, very prompt in handling bulk order supplies.`
+          ],
+          "shop": [
+            `Honestly, ${shop} has an outstanding collection of items. Great quality and helpful customer service.`,
+            `Really great shopping experience at ${shop}, pricing is very fair and products are genuine.`,
+            `Tbh a fantastic local store with a welcoming owner and high-quality inventory.`,
+            `Honestly, the variety they offer is excellent and items are always in trend.`,
+            `The customer assistance at ${shop} is very polite and guides you perfectly.`,
+            `Tbh the shop maintains high standards of product authenticity and fair deals.`,
+            `Really impressed by the cleanliness, modern display layout, and helpful staff.`,
+            `Honestly, shopping at ${shop} is super quick and totally hassle-free.`,
+            `Highly recommended local shop, they have excellent pricing options and discounts.`,
+            `Tbh the overall post-sales assistance and owner behavior are highly professional.`
           ]
         };
 
@@ -661,7 +1211,7 @@
           `${shop} is genuinely one of the best places I've been to — will definitely be coming back!`
         ];
 
-        const catLower = (catg || "").toLowerCase().trim();
+        const catLower = catKey;
 
         if (useHinglish) {
           const pool = hinglishReviews[catLower] || hinglishGeneric;
